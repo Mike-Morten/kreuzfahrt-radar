@@ -1,0 +1,4 @@
+preise.db
+*.log
+letzte_fehlerantwort*.txt
+__pycache__/
