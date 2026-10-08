@@ -4,6 +4,11 @@ on:
   schedule:
     - cron: "17 5 * * *"   # täglich 05:17 UTC = 07:17 Uhr deutscher Sommerzeit
   workflow_dispatch:         # Knopf "Run workflow" zum manuellen Starten
+    inputs:
+      wochenbrief:
+        description: "Wochenbrief jetzt senden (Test)"
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -52,6 +57,23 @@ jobs:
         uses: actions/upload-pages-artifact@v3
         with:
           path: site
+
+      - name: Wochenbrief senden (sonntags)
+        continue-on-error: true
+        env:
+          MAIL_ABSENDER: ${{ secrets.MAIL_ABSENDER }}
+          MAIL_PASSWORT: ${{ secrets.MAIL_PASSWORT }}
+          MAIL_EMPFAENGER: ${{ secrets.MAIL_EMPFAENGER }}
+          MAIL_ANREDE: ${{ vars.MAIL_ANREDE }}
+          JETZT_SENDEN: ${{ inputs.wochenbrief }}
+        run: |
+          if [ "$(TZ=Europe/Berlin date +%u)" != "7" ] && [ "$JETZT_SENDEN" != "true" ]; then
+            echo "Heute ist nicht Sonntag – kein Wochenbrief."; exit 0
+          fi
+          if [ -z "$MAIL_ABSENDER" ] || [ -z "$MAIL_PASSWORT" ] || [ -z "$MAIL_EMPFAENGER" ]; then
+            echo "::warning::Mail-Secrets fehlen – Wochenbrief übersprungen."; exit 0
+          fi
+          python wochenbrief.py
 
       - name: Fehlerantworten aufbewahren
         if: always()

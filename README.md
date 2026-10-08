@@ -36,3 +36,16 @@ python daten_sync.py export
 `dashboard_bauen.py` erzeugt nach jedem Lauf `site/index.html` aus der Vorlage
 `dashboard_vorlage.html`. Die Seite wird über GitHub Pages veröffentlicht
 (Einstellung: Settings → Pages → Source: **GitHub Actions**).
+
+## Wochenbrief
+
+`wochenbrief.py` schickt sonntags eine Mail mit den größten Preissenkungen der
+Woche, neuen Tiefstpreisen und den Bestpreisen pro Region. Benötigt unter
+Settings → Secrets and variables → Actions:
+
+- Secrets: `MAIL_ABSENDER` (Gmail-Adresse), `MAIL_PASSWORT` (Gmail-App-Passwort),
+  `MAIL_EMPFAENGER` (eine oder mehrere Adressen, durch Komma getrennt)
+- Variable (optional): `MAIL_ANREDE`, z. B. `Hallo Mama,`
+
+Test: Actions → „Preise sammeln“ → Run workflow → Haken bei „Wochenbrief jetzt senden“.
+Vorschau lokal: `python wochenbrief.py --vorschau`
