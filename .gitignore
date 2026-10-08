@@ -2,3 +2,4 @@ preise.db
 *.log
 letzte_fehlerantwort*.txt
 __pycache__/
+site/

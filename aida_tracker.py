@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import sys
 import time
 from datetime import date
@@ -36,6 +37,15 @@ API_PATH = (
     "/pax[adults]=2/pax[juveniles]=0/pax[children]=0/pax[babies]=0.json"
 )
 SEARCH_PAGE = BASE_URL + "/finden"
+PAX_QUERY = "?pax[adults]=2&pax[juveniles]=0&pax[children]=0&pax[babies]=0"
+
+
+def detail_url(variant: dict) -> str | None:
+    """Link zur Reise, z. B. https://aida.de/finden/CO07261009/PREMIUM?pax[adults]=2…"""
+    path = (variant.get("bookingLink") or "").split("?")[0]
+    if not path.startswith("/"):
+        return None
+    return SEARCH_PAGE + path + PAX_QUERY
 PAGE_SIZE = 20
 PAUSE_SECONDS = 1.5
 MAX_PAGES = 100
@@ -56,7 +66,9 @@ def _port_name(port: dict) -> str | None:
     # "SANTA CRUZ DE TENERIFE" -> "Santa Cruz de Tenerife"
     small = {"de", "del", "la", "el", "di", "da", "do", "y"}
     words = name.lower().split()
-    return " ".join(w if (i and w in small) else w.capitalize() for i, w in enumerate(words))
+    out = " ".join(w if (i and w in small) else w.capitalize() for i, w in enumerate(words))
+    # "Rom/civitavecchia" -> "Rom/Civitavecchia", "Saint-tropez" -> "Saint-Tropez"
+    return re.sub(r"([/\-(])(\w)", lambda m: m.group(1) + m.group(2).upper(), out)
 
 
 def _ports(group: dict) -> str:
@@ -95,7 +107,7 @@ def flatten_results(groups: list[dict]) -> list[dict]:
                 "region": region,
                 "route_name": g.get("routeCode"),
                 "ports": ports,
-                "detail_url": None,
+                "detail_url": None,  # wird unten gesetzt
                 "price_pp": None,
                 "price_pp_with_flight": None,
                 "cabin_type": None,
@@ -104,6 +116,9 @@ def flatten_results(groups: list[dict]) -> list[dict]:
                 "sold_out": 0,
                 "offers": None,
             })
+            # Link der Variante ohne Flug bevorzugen, sonst den mit Flug nehmen
+            if not row["detail_url"] or not v.get("flightIncluded"):
+                row["detail_url"] = detail_url(v) or row["detail_url"]
             price = v.get("amountPerPerson")
             if v.get("flightIncluded"):
                 if price is not None and (row["price_pp_with_flight"] is None

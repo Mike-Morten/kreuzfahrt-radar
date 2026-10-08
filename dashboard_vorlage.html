@@ -1,0 +1,617 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kreuzfahrt-Radar</title>
+<meta name="description" content="Tägliche Preise aller Reisen von Mein Schiff und AIDA mit Preisverlauf">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,650&family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='15' fill='%23123a5c'/%3E%3Cpath d='M7 19h18l-3 5H10z' fill='%23fff'/%3E%3Cpath d='M15 8v10h-6z' fill='%23f0b44c'/%3E%3C/svg%3E">
+<style>
+:root {
+  color-scheme: light;
+  --page: #f6f4ef;
+  --surface: #fffefb;
+  --surface-2: #efece4;
+  --ink: #14212c;
+  --ink-2: #4b5563;
+  --muted: #7d7a72;
+  --line: #e2ded3;
+  --axis: #c3c2b7;
+  --sea: #123a5c;
+  --sea-2: #1f5480;
+  --sand: #f0b44c;
+  --ms: #2a78d6;
+  --aida: #eb6834;
+  --down: #006300;
+  --down-bg: #e3f3e3;
+  --up: #b02a2a;
+  --up-bg: #fbe7e5;
+  --chart: #1f5480;
+  --focus: #2a78d6;
+  --shadow: 0 1px 2px rgba(20,33,44,.06), 0 4px 16px rgba(20,33,44,.05);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --page: #0f1418;
+    --surface: #182027;
+    --surface-2: #212b33;
+    --ink: #f3f1ea;
+    --ink-2: #c3c2b7;
+    --muted: #93918a;
+    --line: #2c363f;
+    --axis: #3b4650;
+    --sea: #0b2236;
+    --sea-2: #8fb8e0;
+    --sand: #f0b44c;
+    --ms: #3987e5;
+    --aida: #d95926;
+    --down: #3fbf3f;
+    --down-bg: #13301a;
+    --up: #ff8a80;
+    --up-bg: #3a1c1b;
+    --chart: #8fb8e0;
+    --focus: #8fb8e0;
+    --shadow: none;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --page: #0f1418; --surface: #182027; --surface-2: #212b33; --ink: #f3f1ea; --ink-2: #c3c2b7;
+  --muted: #93918a; --line: #2c363f; --axis: #3b4650; --sea: #0b2236; --sea-2: #8fb8e0;
+  --ms: #3987e5; --aida: #d95926; --down: #3fbf3f; --down-bg: #13301a; --up: #ff8a80;
+  --up-bg: #3a1c1b; --chart: #8fb8e0; --focus: #8fb8e0; --shadow: none;
+}
+
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0; background: var(--page); color: var(--ink);
+  font: 400 17px/1.5 "Source Sans 3", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+h1, h2, h3 { font-family: Fraunces, Georgia, serif; font-weight: 650; line-height: 1.15; margin: 0; }
+a { color: inherit; }
+button, select, input { font: inherit; color: inherit; }
+:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; border-radius: 6px; }
+.wrap { max-width: 1080px; margin: 0 auto; padding: 0 16px; }
+.num { font-variant-numeric: tabular-nums; }
+
+/* Kopf */
+.hero { background: var(--sea); color: #fff; padding: 36px 0 30px; position: relative; overflow: hidden; }
+.hero::after {
+  content: ""; position: absolute; left: 0; right: 0; bottom: -1px; height: 26px;
+  background: var(--page);
+  -webkit-mask: radial-gradient(28px 14px at 50% 0, transparent 98%, #000) 0 0 / 56px 26px repeat-x;
+          mask: radial-gradient(28px 14px at 50% 0, transparent 98%, #000) 0 0 / 56px 26px repeat-x;
+}
+.hero .eyebrow { color: var(--sand); font-weight: 700; letter-spacing: .08em; text-transform: uppercase; font-size: 13px; }
+.hero h1 { font-size: clamp(32px, 7vw, 52px); margin: 6px 0 10px; }
+.hero p { margin: 0; color: #d5e2ee; max-width: 640px; }
+.hero .facts { display: flex; flex-wrap: wrap; gap: 8px 22px; margin-top: 18px; font-size: 15px; color: #d5e2ee; }
+.hero .facts b { color: #fff; font-size: 20px; display: block; font-weight: 700; }
+.theme-toggle {
+  position: absolute; top: 14px; right: 16px; z-index: 2; background: rgba(255,255,255,.12);
+  border: 0; color: #fff; border-radius: 999px; padding: 6px 12px; font-size: 14px; cursor: pointer;
+}
+
+section { margin: 34px 0; }
+.sec-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 14px; flex-wrap: wrap; }
+.sec-head h2 { font-size: 26px; }
+.sec-head p { margin: 0; color: var(--ink-2); font-size: 15px; }
+
+/* Karten */
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; box-shadow: var(--shadow); }
+.empty { padding: 18px 20px; color: var(--ink-2); }
+.grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); }
+
+.brand { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; color: var(--ink-2); font-weight: 600; white-space: nowrap; }
+.brand::before { content: ""; width: 10px; height: 10px; border-radius: 50%; background: var(--c); flex: none; }
+.brand.ms { --c: var(--ms); } .brand.aida { --c: var(--aida); }
+
+.delta { display: inline-flex; align-items: center; gap: 4px; font-weight: 700; font-size: 14px; border-radius: 999px; padding: 2px 9px; white-space: nowrap; }
+.delta.down { color: var(--down); background: var(--down-bg); }
+.delta.up { color: var(--up); background: var(--up-bg); }
+.tag { display: inline-block; font-size: 13px; font-weight: 600; padding: 2px 8px; border-radius: 6px; background: var(--surface-2); color: var(--ink-2); }
+.tag.low { background: var(--sand); color: #3a2a00; }
+
+/* Preissenkungen */
+.drop { padding: 14px 16px; display: grid; gap: 6px; text-align: left; cursor: pointer; width: 100%; }
+.drop:hover { border-color: var(--sea-2); }
+.drop .t { font-weight: 700; line-height: 1.3; }
+.drop .meta { color: var(--ink-2); font-size: 14px; }
+.drop .row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.drop .price { font-size: 22px; font-weight: 700; }
+.drop .was { color: var(--muted); text-decoration: line-through; font-size: 14px; margin-left: 6px; }
+
+/* Regionen */
+.region { padding: 14px 16px; text-align: left; cursor: pointer; width: 100%; display: grid; gap: 8px; }
+.region:hover { border-color: var(--sea-2); }
+.region h3 { font-size: 19px; }
+.region .best { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+.region .best .p { font-weight: 700; }
+.region .best .p small { color: var(--muted); font-weight: 400; }
+.region .count { font-size: 13px; color: var(--muted); }
+
+/* Filter */
+.filters { padding: 14px; display: grid; gap: 10px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 160px), 1fr)); align-items: end; }
+.filters label { display: grid; gap: 4px; font-size: 13px; font-weight: 600; color: var(--ink-2); }
+.filters select, .filters input {
+  width: 100%; padding: 9px 10px; border-radius: 9px; border: 1px solid var(--line);
+  background: var(--surface); min-height: 44px; font-size: 16px;
+}
+.chk { display: flex !important; align-items: center; gap: 8px !important; min-height: 44px; cursor: pointer; font-size: 15px !important; color: var(--ink) !important; }
+.chk input { width: 20px; height: 20px; min-height: 0; }
+.result-info { margin: 14px 2px 8px; color: var(--ink-2); font-size: 15px; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
+.linkbtn { background: none; border: 0; padding: 0; color: var(--sea-2); text-decoration: underline; cursor: pointer; font-size: 15px; }
+
+/* Reiseliste */
+.list { display: grid; gap: 10px; }
+.trip { overflow: hidden; }
+.trip-main { display: grid; grid-template-columns: 1fr auto; gap: 4px 16px; padding: 14px 16px; cursor: pointer; width: 100%; text-align: left; background: none; border: 0; }
+.trip-main:hover .trip-title { text-decoration: underline; text-decoration-thickness: 1px; }
+.trip-title { font-weight: 700; font-size: 18px; line-height: 1.3; }
+.trip-sub { color: var(--ink-2); font-size: 15px; display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: center; }
+.trip-ports { color: var(--muted); font-size: 14px; grid-column: 1 / -1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.trip-price { grid-row: 1 / span 2; grid-column: 2; text-align: right; }
+.trip-price .big { font-size: 24px; font-weight: 700; line-height: 1.1; }
+.trip-price .small { font-size: 13px; color: var(--muted); }
+.trip-badges { grid-column: 1; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; min-height: 32px; }
+.fav { background: none; border: 0; cursor: pointer; font-size: 22px; line-height: 1; padding: 4px; color: var(--muted); }
+.fav[aria-pressed="true"] { color: var(--sand); }
+.trip-actions { display: flex; align-items: center; gap: 4px; grid-column: 2; justify-self: end; align-self: end; margin: -6px -6px -6px 0; }
+.fav { min-width: 44px; min-height: 44px; }
+
+.detail { border-top: 1px solid var(--line); padding: 14px 16px 18px; display: grid; gap: 14px; }
+.detail dl { display: grid; grid-template-columns: max-content 1fr; gap: 4px 14px; margin: 0; font-size: 15px; }
+.detail dt { color: var(--muted); }
+.detail dd { margin: 0; }
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 44px; padding: 0 18px;
+  border-radius: 10px; background: var(--sea); color: #fff; text-decoration: none; font-weight: 700; border: 0; cursor: pointer;
+}
+:root[data-theme="dark"] .btn { background: #2a5d8a; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .btn { background: #2a5d8a; } }
+.more { margin: 16px auto 0; display: flex; }
+
+/* Diagramm */
+.chart-box h4 { margin: 0 0 6px; font-size: 15px; }
+.chart { position: relative; }
+.chart svg { display: block; width: 100%; height: 190px; overflow: visible; touch-action: pan-y; }
+.chart .grid-line { stroke: var(--line); stroke-width: 1; }
+.chart .base { stroke: var(--axis); stroke-width: 1; }
+.chart .ax { fill: var(--muted); font-size: 12px; }
+.chart .ln { fill: none; stroke: var(--chart); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.chart .dot { fill: var(--chart); stroke: var(--surface); stroke-width: 2; }
+.chart .cross { stroke: var(--muted); stroke-width: 1; stroke-dasharray: 3 3; }
+.tip {
+  position: absolute; pointer-events: none; background: var(--ink); color: var(--surface); font-size: 13px;
+  padding: 5px 9px; border-radius: 7px; white-space: nowrap; transform: translate(-50%, -110%); display: none;
+}
+.chart-note { font-size: 14px; color: var(--muted); margin: 4px 0 0; }
+
+footer { color: var(--muted); font-size: 14px; padding: 20px 0 40px; border-top: 1px solid var(--line); margin-top: 40px; }
+
+@media (max-width: 520px) {
+  body { font-size: 16px; }
+  .trip-main { grid-template-columns: 1fr auto; }
+  .trip-price .big { font-size: 21px; }
+  .hero { padding-top: 48px; }
+}
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <button class="theme-toggle" id="themeToggle" type="button" aria-label="Hell/Dunkel umschalten">◐ Ansicht</button>
+  <div class="wrap">
+    <div class="eyebrow">Mein Schiff · AIDA</div>
+    <h1>Kreuzfahrt-Radar</h1>
+    <p>Jeden Morgen werden alle Reisepreise neu eingesammelt. So siehst du, wann eine Reise günstiger wird – und wann sie so günstig ist wie noch nie.</p>
+    <div class="facts" id="facts"></div>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <section id="drops-sec" aria-labelledby="drops-h">
+    <div class="sec-head">
+      <h2 id="drops-h">Gerade günstiger geworden</h2>
+      <p id="drops-sub"></p>
+    </div>
+    <div id="drops"></div>
+  </section>
+
+  <section aria-labelledby="regions-h">
+    <div class="sec-head">
+      <h2 id="regions-h">Bestpreise nach Region</h2>
+      <p>Günstigster Preis pro Person, 2 Erwachsene. Antippen zeigt alle Reisen.</p>
+    </div>
+    <div class="grid" id="regions"></div>
+  </section>
+
+  <section id="search" aria-labelledby="search-h">
+    <div class="sec-head">
+      <h2 id="search-h">Reisen finden</h2>
+    </div>
+    <form class="card filters" id="filters" onsubmit="return false">
+      <label>Region
+        <select id="fRegion"><option value="">Alle Regionen</option></select>
+      </label>
+      <label>Reederei
+        <select id="fBrand">
+          <option value="">Beide</option>
+          <option>Mein Schiff</option>
+          <option>AIDA</option>
+        </select>
+      </label>
+      <label>Abreise im
+        <select id="fMonth"><option value="">Beliebigen Monat</option></select>
+      </label>
+      <label>Dauer
+        <select id="fNights">
+          <option value="">Beliebig</option>
+          <option value="1-5">bis 5 Nächte</option>
+          <option value="6-9">6 – 9 Nächte</option>
+          <option value="10-14">10 – 14 Nächte</option>
+          <option value="15-99">ab 15 Nächte</option>
+        </select>
+      </label>
+      <label>Höchstpreis p. P.
+        <input id="fMax" type="number" inputmode="numeric" min="0" step="100" placeholder="z. B. 1500">
+      </label>
+      <label>Sortieren nach
+        <select id="fSort">
+          <option value="price">Preis</option>
+          <option value="night">Preis pro Nacht</option>
+          <option value="date">Abreisedatum</option>
+          <option value="drop">Größte Preissenkung</option>
+        </select>
+      </label>
+      <label>Suche
+        <input id="fText" type="search" placeholder="Hafen, Schiff, Titel …">
+      </label>
+      <label class="chk"><input type="checkbox" id="fFav"> Nur Favoriten ★</label>
+    </form>
+    <div class="result-info"><span id="count" aria-live="polite"></span><button class="linkbtn" id="reset" type="button">Filter zurücksetzen</button></div>
+    <div class="list" id="list"></div>
+    <button class="btn more" id="more" type="button">Weitere Reisen anzeigen</button>
+  </section>
+
+</main>
+
+<footer>
+  <div class="wrap" id="foot"></div>
+</footer>
+
+<script id="daten" type="application/json">__DATEN__</script>
+<script>
+(function () {
+  "use strict";
+  var D = JSON.parse(document.getElementById("daten").textContent);
+  var DAYS = D.days, LAST = DAYS.length - 1;
+
+  /* ---------- Hilfsfunktionen ---------- */
+  var nf = new Intl.NumberFormat("de-DE");
+  function eur(n) { return n == null ? "–" : nf.format(Math.round(n)) + " €"; }
+  var WD = ["So", "Mo", "Di", "Mi", "Do", "Fr", "Sa"];
+  var MO = ["Jan.", "Feb.", "März", "Apr.", "Mai", "Juni", "Juli", "Aug.", "Sept.", "Okt.", "Nov.", "Dez."];
+  var MOL = ["Januar", "Februar", "März", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Dezember"];
+  function pd(s) { var a = s.split("-"); return new Date(+a[0], +a[1] - 1, +a[2]); }
+  function dShort(s) { var d = pd(s); return d.getDate() + ". " + MO[d.getMonth()]; }
+  function dLong(s) { var d = pd(s); return WD[d.getDay()] + ", " + d.getDate() + ". " + MO[d.getMonth()] + " " + d.getFullYear(); }
+  function esc(s) { return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
+  function store(get, key, val) {
+    try { if (get) return localStorage.getItem(key); localStorage.setItem(key, val); } catch (e) { return null; }
+  }
+
+  var OFFER_NAMES = { AIDAspecialOffer: "AIDA Sonderangebot" };
+  function offers(t) {
+    return t.o ? t.o.split(" | ").map(function (o) { return OFFER_NAMES[o] || o; }) : [];
+  }
+
+  /* ---------- Kennzahlen je Reise ---------- */
+  D.trips.forEach(function (t) {
+    t.flightOnly = !t.pp;
+    t.series = t.pp || t.pf;                       // Preisreihe ab Tag d0
+    var s = t.series, n = s.length;
+    t.cur = s[n - 1];
+    t.flight = t.pf ? t.pf[t.pf.length - 1] : null;
+    var prev = null;
+    for (var i = n - 2; i >= 0; i--) if (s[i] != null) { prev = s[i]; break; }
+    t.prev = prev;
+    t.delta = (prev != null && t.cur != null) ? t.cur - prev : 0;
+    var vals = s.filter(function (v) { return v != null; });
+    t.min = Math.min.apply(null, vals); t.max = Math.max.apply(null, vals);
+    t.record = vals.length > 1 && t.cur === t.min && t.max > t.min;   // neuer Tiefstpreis
+    t.perNight = t.cur != null && t.n ? t.cur / t.n : null;
+    t.month = t.f.slice(0, 7);
+    t.isNew = t.d0 === LAST && LAST > 0;
+    t.hay = (t.h + " " + t.s + " " + t.p + " " + t.r + " " + t.b).toLowerCase();
+  });
+
+  /* ---------- Favoriten ---------- */
+  var favs = {};
+  try { (JSON.parse(store(true, "kr-fav") || "[]")).forEach(function (c) { favs[c] = 1; }); } catch (e) {}
+  function saveFavs() { store(false, "kr-fav", JSON.stringify(Object.keys(favs))); }
+
+  /* ---------- Kopfzeile ---------- */
+  var ms = D.trips.filter(function (t) { return t.b === "Mein Schiff"; }).length;
+  var aida = D.trips.length - ms;
+  var cheapest = D.trips.reduce(function (a, t) { return (t.cur != null && !t.flightOnly && (a == null || t.cur < a.cur)) ? t : a; }, null);
+  document.getElementById("facts").innerHTML =
+    "<div><b>" + dShort(D.stand) + "</b>Stand der Preise</div>" +
+    "<div><b class='num'>" + nf.format(D.trips.length) + "</b>Abfahrten</div>" +
+    "<div><b class='num'>" + nf.format(ms) + " / " + nf.format(aida) + "</b>Mein Schiff / AIDA</div>" +
+    (cheapest ? "<div><b class='num'>ab " + eur(cheapest.cur) + "</b>günstigste Reise p. P.</div>" : "") +
+    "<div><b class='num'>" + DAYS.length + "</b>" + (DAYS.length === 1 ? "Tag" : "Tage") + " Preisverlauf</div>";
+
+  /* ---------- Preissenkungen ---------- */
+  function brandTag(t) { return "<span class='brand " + (t.b === "AIDA" ? "aida" : "ms") + "'>" + esc(t.b) + "</span>"; }
+  function deltaTag(d) {
+    if (!d) return "";
+    return d < 0
+      ? "<span class='delta down' title='günstiger als beim letzten Mal'>▼ " + eur(-d) + "</span>"
+      : "<span class='delta up' title='teurer als beim letzten Mal'>▲ " + eur(d) + "</span>";
+  }
+  var drops = D.trips.filter(function (t) { return t.delta < 0; })
+    .sort(function (a, b) { return a.delta - b.delta; }).slice(0, 6);
+  var dropsEl = document.getElementById("drops");
+  if (LAST < 1) {
+    document.getElementById("drops-sub").textContent = "";
+    dropsEl.innerHTML = "<div class='card empty'>Die Preise werden seit dem " + dLong(DAYS[0]) +
+      " gesammelt. Ab dem nächsten Sammeltag erscheinen hier die Reisen, deren Preis gesunken ist.</div>";
+  } else if (!drops.length) {
+    document.getElementById("drops-sub").textContent = "Vergleich mit dem " + dShort(DAYS[LAST - 1]);
+    dropsEl.innerHTML = "<div class='card empty'>Seit dem letzten Mal ist keine Reise günstiger geworden.</div>";
+  } else {
+    document.getElementById("drops-sub").textContent = "Vergleich mit dem " + dShort(DAYS[LAST - 1]);
+    dropsEl.innerHTML = "<div class='grid'>" + drops.map(function (t) {
+      return "<button type='button' class='card drop' data-open='" + esc(t.c) + "'>" +
+        "<span class='row'>" + brandTag(t) + deltaTag(t.delta) + "</span>" +
+        "<span class='t'>" + esc(t.h) + "</span>" +
+        "<span class='meta'>" + esc(t.s) + " · " + dShort(t.f) + " · " + t.n + " Nächte</span>" +
+        "<span class='row'><span><span class='price num'>" + eur(t.cur) + "</span><span class='was num'>" + eur(t.prev) + "</span></span>" +
+        (t.record ? "<span class='tag low'>Tiefstpreis</span>" : "") + "</span></button>";
+    }).join("") + "</div>";
+  }
+
+  /* ---------- Regionen ---------- */
+  var regEl = document.getElementById("regions");
+  regEl.innerHTML = D.regions.map(function (r) {
+    var inR = D.trips.filter(function (t) { return t.r === r && !t.flightOnly && t.cur != null; });
+    function best(b) {
+      var x = inR.filter(function (t) { return t.b === b; });
+      if (!x.length) return "";
+      var m = x.reduce(function (a, t) { return t.cur < a.cur ? t : a; });
+      return "<span class='best'>" + brandTag(m) + "<span class='p num'>ab " + eur(m.cur) +
+        " <small>· " + m.n + " N.</small></span></span>";
+    }
+    var all = D.trips.filter(function (t) { return t.r === r; }).length;
+    var body = best("Mein Schiff") + best("AIDA");
+    if (!body) body = "<span class='count'>nur als Paket mit Flug</span>";
+    return "<button type='button' class='card region' data-region='" + esc(r) + "'><h3>" + esc(r) + "</h3>" + body +
+      "<span class='count'>" + nf.format(all) + " Abfahrten</span></button>";
+  }).join("");
+
+  /* ---------- Filter ---------- */
+  var $ = function (id) { return document.getElementById(id); };
+  var fRegion = $("fRegion"), fBrand = $("fBrand"), fMonth = $("fMonth"), fNights = $("fNights"),
+      fMax = $("fMax"), fSort = $("fSort"), fText = $("fText"), fFav = $("fFav");
+  D.regions.forEach(function (r) { fRegion.add(new Option(r, r)); });
+  var months = {};
+  D.trips.forEach(function (t) { months[t.month] = 1; });
+  Object.keys(months).sort().forEach(function (m) {
+    var a = m.split("-"); fMonth.add(new Option(MOL[+a[1] - 1] + " " + a[0], m));
+  });
+
+  var PAGE = 30, shown = PAGE, current = [], openCode = null;
+
+  function filtered() {
+    var reg = fRegion.value, br = fBrand.value, mo = fMonth.value, ni = fNights.value,
+        mx = parseFloat(fMax.value), q = fText.value.trim().toLowerCase(), fav = fFav.checked;
+    var lo = 0, hi = 999;
+    if (ni) { var p = ni.split("-"); lo = +p[0]; hi = +p[1]; }
+    var res = D.trips.filter(function (t) {
+      if (reg && t.r !== reg) return false;
+      if (br && t.b !== br) return false;
+      if (mo && t.month !== mo) return false;
+      if (ni && (t.n < lo || t.n > hi)) return false;
+      if (!isNaN(mx) && (t.cur == null || t.cur > mx)) return false;
+      if (q && t.hay.indexOf(q) < 0) return false;
+      if (fav && !favs[t.c]) return false;
+      return true;
+    });
+    var s = fSort.value;
+    var key = {
+      price: function (t) { return t.cur == null ? 1e9 : t.cur; },
+      night: function (t) { return t.perNight == null ? 1e9 : t.perNight; },
+      date: function (t) { return t.f; },
+      drop: function (t) { return t.delta; }
+    }[s];
+    res.sort(function (a, b) {
+      var x = key(a), y = key(b);
+      return x < y ? -1 : x > y ? 1 : (a.cur || 0) - (b.cur || 0);
+    });
+    return res;
+  }
+
+  function tripHtml(t) {
+    var badges = [];
+    if (t.record) badges.push("<span class='tag low'>Tiefstpreis seit Beobachtung</span>");
+    if (t.delta) badges.push(deltaTag(t.delta));
+    if (t.isNew) badges.push("<span class='tag'>Neu im Programm</span>");
+    if (t.flightOnly) badges.push("<span class='tag'>nur mit Flug</span>");
+    offers(t).slice(0, 2).forEach(function (o) { badges.push("<span class='tag'>" + esc(o) + "</span>"); });
+    var isOpen = openCode === t.c;
+    return "<article class='card trip' id='t-" + esc(t.c) + "'>" +
+      "<div class='trip-main' role='button' tabindex='0' aria-expanded='" + isOpen + "' data-toggle='" + esc(t.c) + "'>" +
+        "<div><div class='trip-title'>" + esc(t.h) + "</div>" +
+        "<div class='trip-sub'>" + brandTag(t) + "<span>" + esc(t.s) + "</span><span>" + dShort(t.f) + " – " + dShort(t.t) +
+        " " + t.f.slice(0, 4) + "</span><span>" + t.n + " Nächte</span></div></div>" +
+        "<div class='trip-price'><div class='big num'>" + eur(t.cur) + "</div><div class='small'>p. P." +
+        (t.flightOnly ? " inkl. Flug" : "") + (t.perNight ? " · " + eur(t.perNight) + "/Nacht" : "") + "</div></div>" +
+        (t.p ? "<div class='trip-ports'>" + esc(t.p) + "</div>" : "") +
+        "<div class='trip-badges'>" + badges.join("") + "</div>" +
+        "<div class='trip-actions'><button type='button' class='fav' data-fav='" + esc(t.c) + "' aria-pressed='" + !!favs[t.c] +
+        "' aria-label='Als Favorit merken' title='Als Favorit merken'>" + (favs[t.c] ? "★" : "☆") + "</button></div>" +
+      "</div>" +
+      (isOpen ? detailHtml(t) : "") +
+      "</article>";
+  }
+
+  function detailHtml(t) {
+    var rows = [
+      ["Abreise", dLong(t.f)], ["Rückkehr", dLong(t.t)], ["Schiff", esc(t.s)], ["Region", esc(t.r)]
+    ];
+    if (t.p) rows.push(["Route", esc(t.p)]);
+    if (!t.flightOnly && t.flight != null) rows.push(["Mit Flug", eur(t.flight) + " p. P."]);
+    if (t.k) rows.push(["Kabine", esc(({ Interior: "Innenkabine", Outside: "Außenkabine", Balcony: "Balkonkabine", JuniorSuite: "Junior Suite", Suite: "Suite" })[t.k] || t.k)]);
+    if (t.o) rows.push(["Aktionen", esc(offers(t).join(", "))]);
+    var seen = t.series.filter(function (v) { return v != null; }).length;
+    if (seen > 1 && t.max > t.min) rows.push(["Preisspanne", "zwischen " + eur(t.min) + " und " + eur(t.max)]);
+    rows.push(["Beobachtet seit", dLong(DAYS[t.d0])]);
+    return "<div class='detail'>" +
+      "<div class='chart-box'><h4>Preisverlauf pro Person" + (t.flightOnly ? " (inkl. Flug)" : "") + "</h4>" +
+      "<div class='chart' data-chart='" + esc(t.c) + "'></div>" +
+      (seen < 2 ? "<p class='chart-note'>Der Verlauf füllt sich mit jedem Sammeltag.</p>" : "") + "</div>" +
+      "<dl>" + rows.map(function (r) { return "<dt>" + r[0] + "</dt><dd>" + r[1] + "</dd>"; }).join("") + "</dl>" +
+      (t.u ? "<div><a class='btn' href='" + esc(t.u) + "' target='_blank' rel='noopener'>Reise bei " + esc(t.b) + " ansehen ↗</a></div>" : "") +
+      "</div>";
+  }
+
+  /* ---------- Diagramm (eine Reihe, Hover/Touch-Tooltip) ---------- */
+  function drawChart(el, t) {
+    var pts = [];
+    t.series.forEach(function (v, i) { if (v != null) pts.push({ i: i + t.d0, v: v }); });
+    var W = Math.max(el.clientWidth, 260), H = 190, L = 58, R = 14, T = 12, B = 26;
+    var x0 = t.d0, x1 = Math.max(LAST, x0 + 1);
+    var lo = Math.min.apply(null, pts.map(function (p) { return p.v; }));
+    var hi = Math.max.apply(null, pts.map(function (p) { return p.v; }));
+    var pad = Math.max((hi - lo) * 0.25, hi * 0.05, 20);
+    lo = Math.max(0, lo - pad); hi = hi + pad;
+    function X(i) { return L + (i - x0) / (x1 - x0) * (W - L - R); }
+    function Y(v) { return T + (hi - v) / (hi - lo) * (H - T - B); }
+    var g = "";
+    for (var k = 0; k <= 2; k++) {
+      var v = lo + (hi - lo) * k / 2, y = Y(v);
+      g += "<line class='" + (k === 0 ? "base" : "grid-line") + "' x1='" + L + "' x2='" + (W - R) + "' y1='" + y + "' y2='" + y + "'/>" +
+        "<text class='ax num' x='" + (L - 8) + "' y='" + (y + 4) + "' text-anchor='end'>" + eur(v) + "</text>";
+    }
+    g += "<text class='ax' x='" + L + "' y='" + (H - 6) + "'>" + dShort(DAYS[x0]) + "</text>" +
+         "<text class='ax' x='" + (W - R) + "' y='" + (H - 6) + "' text-anchor='end'>" + dShort(DAYS[LAST]) + "</text>";
+    var d = pts.map(function (p, j) { return (j ? "L" : "M") + X(p.i).toFixed(1) + " " + Y(p.v).toFixed(1); }).join(" ");
+    var lastP = pts[pts.length - 1];
+    g += "<path class='ln' d='" + d + "'/>" +
+         "<line class='cross' id='cx-" + esc(t.c) + "' y1='" + T + "' y2='" + (H - B) + "' style='display:none'/>" +
+         "<circle class='dot' cx='" + X(lastP.i) + "' cy='" + Y(lastP.v) + "' r='5'/>" +
+         "<circle class='dot hov' r='5' style='display:none'/>";
+    el.innerHTML = "<svg viewBox='0 0 " + W + " " + H + "' role='img' aria-label='Preisverlauf von " +
+      eur(t.min) + " bis " + eur(t.max) + "'>" + g + "<rect x='" + L + "' y='0' width='" + (W - L - R) + "' height='" + H +
+      "' fill='transparent' class='hit'/></svg><div class='tip'></div>";
+    var svg = el.querySelector("svg"), tip = el.querySelector(".tip"),
+        cross = svg.querySelector(".cross"), hov = svg.querySelector(".hov");
+    function move(ev) {
+      var r = svg.getBoundingClientRect(), mx = (ev.clientX - r.left) * W / r.width, best = pts[0];
+      pts.forEach(function (p) { if (Math.abs(X(p.i) - mx) < Math.abs(X(best.i) - mx)) best = p; });
+      var px = X(best.i), py = Y(best.v);
+      cross.setAttribute("x1", px); cross.setAttribute("x2", px); cross.style.display = "";
+      hov.setAttribute("cx", px); hov.setAttribute("cy", py); hov.style.display = "";
+      tip.style.display = "block"; tip.style.left = (px * r.width / W) + "px"; tip.style.top = (py * r.height / H) + "px";
+      tip.textContent = dShort(DAYS[best.i]) + ": " + eur(best.v);
+    }
+    function leave() { tip.style.display = "none"; cross.style.display = "none"; hov.style.display = "none"; }
+    svg.addEventListener("pointermove", move);
+    svg.addEventListener("pointerdown", move);
+    svg.addEventListener("pointerleave", leave);
+  }
+
+  /* ---------- Liste rendern ---------- */
+  var listEl = $("list"), moreBtn = $("more");
+  function render(keepShown) {
+    current = filtered();
+    if (!keepShown) shown = PAGE;
+    var vis = current.slice(0, shown);
+    listEl.innerHTML = vis.length ? vis.map(tripHtml).join("")
+      : "<div class='card empty'>Keine Reise passt zu diesen Filtern. Vielleicht einen Filter lockern?</div>";
+    $("count").textContent = nf.format(current.length) + (current.length === 1 ? " Reise" : " Reisen") +
+      (current.length > shown ? ", die ersten " + nf.format(shown) + " werden angezeigt" : "");
+    moreBtn.style.display = current.length > shown ? "" : "none";
+    if (openCode) {
+      var c = listEl.querySelector("[data-chart='" + CSS.escape(openCode) + "']");
+      var t = D.trips.find(function (x) { return x.c === openCode; });
+      if (c && t) drawChart(c, t);
+    }
+    store(false, "kr-filter", JSON.stringify({ r: fRegion.value, b: fBrand.value, m: fMonth.value, n: fNights.value, x: fMax.value, s: fSort.value }));
+  }
+  ["change", "input"].forEach(function (ev) { $("filters").addEventListener(ev, function () { render(false); }); });
+  moreBtn.addEventListener("click", function () { shown += PAGE; render(true); });
+  $("reset").addEventListener("click", function () {
+    fRegion.value = fBrand.value = fMonth.value = fNights.value = fMax.value = fText.value = "";
+    fSort.value = "price"; fFav.checked = false; render(false);
+  });
+
+  function toggle(code) {
+    openCode = openCode === code ? null : code;
+    render(true);
+  }
+  listEl.addEventListener("click", function (e) {
+    var f = e.target.closest("[data-fav]");
+    if (f) {
+      e.stopPropagation();
+      var c = f.getAttribute("data-fav");
+      if (favs[c]) delete favs[c]; else favs[c] = 1;
+      saveFavs(); render(true); return;
+    }
+    if (e.target.closest("a")) return;
+    var tg = e.target.closest("[data-toggle]");
+    if (tg && !e.target.closest(".detail")) toggle(tg.getAttribute("data-toggle"));
+  });
+  listEl.addEventListener("keydown", function (e) {
+    if ((e.key === "Enter" || e.key === " ") && e.target.matches("[data-toggle]")) { e.preventDefault(); toggle(e.target.getAttribute("data-toggle")); }
+  });
+
+  // Klick auf Region oder Preissenkung -> Liste filtern bzw. Reise öffnen
+  regEl.addEventListener("click", function (e) {
+    var b = e.target.closest("[data-region]"); if (!b) return;
+    fRegion.value = b.getAttribute("data-region"); fSort.value = "price"; render(false);
+    $("search").scrollIntoView({ behavior: "smooth" });
+  });
+  dropsEl.addEventListener("click", function (e) {
+    var b = e.target.closest("[data-open]"); if (!b) return;
+    var c = b.getAttribute("data-open");
+    fRegion.value = fBrand.value = fMonth.value = fNights.value = fMax.value = ""; fFav.checked = false;
+    fSort.value = "drop"; fText.value = ""; openCode = c; render(false);
+    var el = document.getElementById("t-" + c);
+    if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+  });
+
+  // Gespeicherte Filter wiederherstellen
+  try {
+    var sf = JSON.parse(store(true, "kr-filter") || "null");
+    if (sf) { fRegion.value = sf.r || ""; fBrand.value = sf.b || ""; fMonth.value = sf.m || ""; fNights.value = sf.n || ""; fMax.value = sf.x || ""; fSort.value = sf.s || "price"; }
+  } catch (e) {}
+
+  // Hell/Dunkel
+  var root = document.documentElement, th = store(true, "kr-theme");
+  if (th) root.setAttribute("data-theme", th);
+  $("themeToggle").addEventListener("click", function () {
+    var dark = root.getAttribute("data-theme") ? root.getAttribute("data-theme") === "dark"
+      : matchMedia("(prefers-color-scheme: dark)").matches;
+    var next = dark ? "light" : "dark";
+    root.setAttribute("data-theme", next); store(false, "kr-theme", next);
+    if (openCode) render(true);
+  });
+
+  window.addEventListener("resize", function () { if (openCode) render(true); });
+
+  $("foot").innerHTML = "Preise pro Person bei 2 Erwachsenen in der günstigsten freien Kabine, wie auf meinschiff.com und aida.de angezeigt. " +
+    "Alle Angaben ohne Gewähr – maßgeblich ist der Preis bei der Buchung. Aktualisiert jeden Morgen, zuletzt am " + dLong(D.stand) + ".";
+
+  render(false);
+})();
+</script>
+</body>
+</html>

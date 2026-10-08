@@ -30,3 +30,9 @@ python mein_schiff_tracker.py
 python aida_tracker.py
 python daten_sync.py export
 ```
+
+## Dashboard
+
+`dashboard_bauen.py` erzeugt nach jedem Lauf `site/index.html` aus der Vorlage
+`dashboard_vorlage.html`. Die Seite wird über GitHub Pages veröffentlicht
+(Einstellung: Settings → Pages → Source: **GitHub Actions**).
