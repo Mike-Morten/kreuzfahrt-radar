@@ -192,6 +192,62 @@ section { margin: 34px 0; }
 }
 .chart-note { font-size: 14px; color: var(--muted); margin: 4px 0 0; }
 
+/* Schiff im Kopf */
+.ship { position: absolute; right: max(16px, calc(50% - 540px)); bottom: 30px; width: 190px; opacity: .95; pointer-events: none; }
+.ship .hull { animation: bob 4.5s ease-in-out infinite; transform-origin: 50% 80%; }
+.ship .smoke { animation: drift 6s linear infinite; opacity: 0; }
+.ship .smoke.s2 { animation-delay: 2s; } .ship .smoke.s3 { animation-delay: 4s; }
+@keyframes bob { 0%,100% { transform: translateY(0) rotate(-1deg); } 50% { transform: translateY(4px) rotate(1deg); } }
+@keyframes drift { 0% { transform: translate(0,0) scale(.6); opacity: .0; } 15% { opacity: .55; } 100% { transform: translate(-46px,-34px) scale(1.6); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .ship .hull, .ship .smoke { animation: none; } }
+@media (max-width: 760px) { .ship { width: 120px; bottom: 34px; opacity: .35; } }
+
+/* Geburtstagsgruß */
+.gruss { margin-top: -6px; padding: 20px 22px; border-radius: 16px; background: linear-gradient(135deg, var(--sand), #f6cf86);
+  color: #2b1d00; display: grid; grid-template-columns: auto 1fr; gap: 6px 16px; align-items: start; box-shadow: var(--shadow); }
+.gruss .icon { font-size: 40px; line-height: 1; grid-row: span 3; }
+.gruss h2 { font-size: clamp(22px, 4.5vw, 30px); }
+.gruss p { margin: 0; max-width: 680px; }
+.gruss .sig { font-family: Fraunces, Georgia, serif; font-style: italic; font-size: 18px; }
+
+/* Preiskalender */
+.cal-tools { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 10px; }
+.seg { display: inline-flex; background: var(--surface-2); border-radius: 10px; padding: 3px; }
+.seg button { border: 0; background: none; padding: 7px 12px; border-radius: 8px; cursor: pointer; font-size: 15px; min-height: 38px; color: var(--ink-2); }
+.seg button[aria-pressed="true"] { background: var(--surface); color: var(--ink); font-weight: 700; box-shadow: var(--shadow); }
+.cal-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; padding-bottom: 4px; }
+.cal { border-collapse: separate; border-spacing: 2px; font-size: 13px; min-width: 100%; }
+.cal th { font-weight: 600; color: var(--ink-2); padding: 4px 6px; white-space: nowrap; }
+.cal thead th { font-size: 12px; text-align: center; }
+.cal thead th.yr { color: var(--muted); font-weight: 400; }
+.cal tbody th { text-align: left; position: sticky; left: 0; background: var(--surface); z-index: 2; padding-right: 10px; }
+.cal td { min-width: 58px; height: 40px; text-align: center; border-radius: 6px; cursor: pointer; font-weight: 600; font-variant-numeric: tabular-nums; }
+.cal td.none { background: transparent; color: var(--muted); cursor: default; font-weight: 400; }
+.cal td:not(.none):hover { outline: 2px solid var(--ink); outline-offset: -2px; }
+.cal td.b0 { background: #cde2fb; color: #0d366b; } .cal td.b1 { background: #9ec5f4; color: #0d366b; }
+.cal td.b2 { background: #6da7ec; color: #0b1f3a; } .cal td.b3 { background: #2a78d6; color: #fff; }
+.cal td.b4 { background: #184f95; color: #fff; }
+@media (max-width: 600px) {
+  .cal tbody th { font-size: 12px; white-space: normal; hyphens: auto; -webkit-hyphens: auto; min-width: 92px; max-width: 92px; line-height: 1.2; padding-right: 6px; }
+  .cal td { min-width: 50px; font-size: 12px; }
+}
+.legend { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--ink-2); margin-top: 10px; flex-wrap: wrap; }
+.legend .sw { display: inline-flex; gap: 2px; }
+.legend .sw i { width: 22px; height: 12px; border-radius: 3px; display: block; }
+
+/* Andere Termine */
+.sib h4 { margin: 0 0 8px; font-size: 15px; }
+.sib-list { display: grid; gap: 4px; }
+.sib-row { display: grid; grid-template-columns: 112px 1fr 76px; gap: 10px; align-items: center; font-size: 14px; background: none; border: 0;
+  padding: 4px 6px; border-radius: 8px; cursor: pointer; text-align: left; min-height: 34px; }
+.sib-row:hover { background: var(--surface-2); }
+.sib-row.cur { background: var(--surface-2); font-weight: 700; cursor: default; }
+.sib-row .bar { height: 10px; border-radius: 0 4px 4px 0; background: var(--chart); opacity: .55; }
+.sib-row.cur .bar, .sib-row.best .bar { opacity: 1; }
+.sib-row.best .bar { background: var(--down); }
+.sib-row .pr { text-align: right; font-variant-numeric: tabular-nums; }
+.sib-note { font-size: 13px; color: var(--muted); margin-top: 6px; }
+
 footer { color: var(--muted); font-size: 14px; padding: 20px 0 40px; border-top: 1px solid var(--line); margin-top: 40px; }
 
 @media (max-width: 520px) {
@@ -212,9 +268,25 @@ footer { color: var(--muted); font-size: 14px; padding: 20px 0 40px; border-top:
     <p>Jeden Morgen werden alle Reisepreise neu eingesammelt. So siehst du, wann eine Reise günstiger wird – und wann sie so günstig ist wie noch nie.</p>
     <div class="facts" id="facts"></div>
   </div>
+  <svg class="ship" viewBox="0 0 200 120" aria-hidden="true">
+    <circle class="smoke" cx="120" cy="30" r="7" fill="#fff"/><circle class="smoke s2" cx="120" cy="30" r="7" fill="#fff"/><circle class="smoke s3" cx="120" cy="30" r="7" fill="#fff"/>
+    <g class="hull">
+      <rect x="112" y="34" width="16" height="22" rx="2" fill="#f0b44c"/>
+      <rect x="112" y="34" width="16" height="5" fill="#d8572f"/>
+      <rect x="58" y="56" width="96" height="14" rx="3" fill="#ffffff"/>
+      <rect x="70" y="44" width="70" height="13" rx="3" fill="#e9eef3"/>
+      <g fill="#123a5c"><circle cx="74" cy="63" r="2.4"/><circle cx="86" cy="63" r="2.4"/><circle cx="98" cy="63" r="2.4"/><circle cx="110" cy="63" r="2.4"/><circle cx="122" cy="63" r="2.4"/><circle cx="134" cy="63" r="2.4"/><circle cx="146" cy="63" r="2.4"/>
+      <rect x="78" y="48" width="8" height="5" rx="1"/><rect x="92" y="48" width="8" height="5" rx="1"/><rect x="106" y="48" width="8" height="5" rx="1"/><rect x="120" y="48" width="8" height="5" rx="1"/></g>
+      <path d="M40 70h134l-14 22H56z" fill="#ffffff"/>
+      <path d="M44 76h126" stroke="#d8572f" stroke-width="3"/>
+    </g>
+    <path d="M0 98c12 0 12-6 25-6s13 6 25 6 13-6 25-6 13 6 25 6 13-6 25-6 13 6 25 6 13-6 25-6 13 6 25 6" stroke="#8fb8e0" stroke-width="3" fill="none" opacity=".7"/>
+  </svg>
 </header>
 
 <main class="wrap">
+
+  <div id="gruss"></div>
 
   <section id="drops-sec" aria-labelledby="drops-h">
     <div class="sec-head">
@@ -224,12 +296,42 @@ footer { color: var(--muted); font-size: 14px; padding: 20px 0 40px; border-top:
     <div id="drops"></div>
   </section>
 
+  <section id="lm-sec" aria-labelledby="lm-h">
+    <div class="sec-head">
+      <h2 id="lm-h">Spontan los?</h2>
+      <p>Abfahrten in den nächsten 8 Wochen – günstigster Preis pro Nacht zuerst</p>
+    </div>
+    <div id="lm"></div>
+  </section>
+
   <section aria-labelledby="regions-h">
     <div class="sec-head">
       <h2 id="regions-h">Bestpreise nach Region</h2>
       <p>Günstigster Preis pro Person, 2 Erwachsene. Antippen zeigt alle Reisen.</p>
     </div>
     <div class="grid" id="regions"></div>
+  </section>
+
+  <section id="cal-sec" aria-labelledby="cal-h">
+    <div class="sec-head">
+      <h2 id="cal-h">Wann ist es wo am günstigsten?</h2>
+      <p>Günstigster Preis p. P. je Region und Abreisemonat, ohne Flug. Antippen zeigt die Reisen.</p>
+    </div>
+    <div class="card" style="padding:14px">
+      <div class="cal-tools">
+        <div class="seg" role="group" aria-label="Reederei" id="calBrand">
+          <button type="button" data-v="" aria-pressed="true">Beide</button>
+          <button type="button" data-v="Mein Schiff" aria-pressed="false">Mein Schiff</button>
+          <button type="button" data-v="AIDA" aria-pressed="false">AIDA</button>
+        </div>
+        <div class="seg" role="group" aria-label="Preisangabe" id="calMetric">
+          <button type="button" data-v="total" aria-pressed="true">Reisepreis</button>
+          <button type="button" data-v="night" aria-pressed="false">pro Nacht</button>
+        </div>
+      </div>
+      <div class="cal-wrap"><table class="cal" id="cal"></table></div>
+      <div class="legend"><span>teurer</span><span class="sw"><i style="background:#cde2fb"></i><i style="background:#9ec5f4"></i><i style="background:#6da7ec"></i><i style="background:#2a78d6"></i><i style="background:#184f95"></i></span><span>günstiger – jeweils im Vergleich innerhalb der Region</span></div>
+    </div>
   </section>
 
   <section id="search" aria-labelledby="search-h">
@@ -330,6 +432,12 @@ footer { color: var(--muted); font-size: 14px; padding: 20px 0 40px; border-top:
     t.month = t.f.slice(0, 7);
     t.isNew = t.d0 === LAST && LAST > 0;
     t.hay = (t.h + " " + t.s + " " + t.p + " " + t.r + " " + t.b).toLowerCase();
+    t.g = t.b + "|" + t.n + "|" + t.h;
+  });
+  var BYCODE = {}, GROUPS = {};
+  D.trips.forEach(function (t) {
+    BYCODE[t.c] = t;
+    (GROUPS[t.g] = GROUPS[t.g] || []).push(t);
   });
 
   /* ---------- Favoriten ---------- */
@@ -478,7 +586,33 @@ footer { color: var(--muted); font-size: 14px; padding: 20px 0 40px; border-top:
       "<div class='chart' data-chart='" + esc(t.c) + "'></div>" +
       (seen < 2 ? "<p class='chart-note'>Der Verlauf füllt sich mit jedem Sammeltag.</p>" : "") + "</div>" +
       "<dl>" + rows.map(function (r) { return "<dt>" + r[0] + "</dt><dd>" + r[1] + "</dd>"; }).join("") + "</dl>" +
+      siblingsHtml(t) +
       (t.u ? "<div><a class='btn' href='" + esc(t.u) + "' target='_blank' rel='noopener'>Reise bei " + esc(t.b) + " ansehen ↗</a></div>" : "") +
+      "</div>";
+  }
+
+  function siblingsHtml(t) {
+    var all = (GROUPS[t.g] || []).filter(function (x) { return x.cur != null && x.flightOnly === t.flightOnly; });
+    if (all.length < 2) return "";
+    var MAXN = 12, list = all, note = "";
+    if (all.length > MAXN) {
+      list = all.slice().sort(function (a, b) { return a.cur - b.cur; }).slice(0, MAXN - 1);
+      if (list.indexOf(t) < 0) list.push(t); else list.push(all.filter(function (x) { return list.indexOf(x) < 0; })
+        .sort(function (a, b) { return a.cur - b.cur; })[0]);
+      note = "Die " + MAXN + " günstigsten von " + all.length + " Terminen.";
+    }
+    list.sort(function (a, b) { return a.f < b.f ? -1 : 1; });
+    var mx = Math.max.apply(null, list.map(function (x) { return x.cur; }));
+    var mn = Math.min.apply(null, all.map(function (x) { return x.cur; }));
+    var head = t.cur === mn ? "Dieser Termin ist der günstigste dieser Route."
+      : "Bester Termin: " + eur(mn) + " – " + eur(t.cur - mn) + " weniger als dieser.";
+    return "<div class='sib'><h4>Gleiche Reise, andere Termine</h4><p class='chart-note' style='margin:0 0 8px'>" + head + "</p><div class='sib-list'>" +
+      list.map(function (x) {
+        var cls = "sib-row" + (x === t ? " cur" : "") + (x.cur === mn ? " best" : "");
+        return "<button type='button' class='" + cls + "'" + (x === t ? " aria-current='true'" : " data-goto='" + esc(x.c) + "'") +
+          "><span>" + dShort(x.f) + " " + x.f.slice(2, 4) + "</span><span class='bar' style='width:" + Math.max(4, x.cur / mx * 100).toFixed(1) +
+          "%'></span><span class='pr'>" + eur(x.cur) + "</span></button>";
+      }).join("") + "</div>" + (note ? "<div class='sib-note'>" + note + "</div>" : "") +
       "</div>";
   }
 
@@ -546,7 +680,10 @@ footer { color: var(--muted); font-size: 14px; padding: 20px 0 40px; border-top:
     }
     store(false, "kr-filter", JSON.stringify({ r: fRegion.value, b: fBrand.value, m: fMonth.value, n: fNights.value, x: fMax.value, s: fSort.value }));
   }
-  ["change", "input"].forEach(function (ev) { $("filters").addEventListener(ev, function () { render(false); }); });
+  // Textfelder bei jeder Eingabe, Auswahllisten bei Änderung – nicht doppelt,
+  // sonst baut das Verlassen des Suchfelds die Liste neu auf und verschluckt den nächsten Tipp
+  $("filters").addEventListener("input", function (e) { if (e.target.matches("input[type=search], input[type=number]")) render(false); });
+  $("filters").addEventListener("change", function (e) { if (e.target.matches("select, input[type=checkbox]")) render(false); });
   moreBtn.addEventListener("click", function () { shown += PAGE; render(true); });
   $("reset").addEventListener("click", function () {
     fRegion.value = fBrand.value = fMonth.value = fNights.value = fMax.value = fText.value = "";
@@ -566,6 +703,8 @@ footer { color: var(--muted); font-size: 14px; padding: 20px 0 40px; border-top:
       saveFavs(); render(true); return;
     }
     if (e.target.closest("a")) return;
+    var go = e.target.closest("[data-goto]");
+    if (go) { openTrip(go.getAttribute("data-goto"), true); return; }
     var tg = e.target.closest("[data-toggle]");
     if (tg && !e.target.closest(".detail")) toggle(tg.getAttribute("data-toggle"));
   });
@@ -579,14 +718,104 @@ footer { color: var(--muted); font-size: 14px; padding: 20px 0 40px; border-top:
     fRegion.value = b.getAttribute("data-region"); fSort.value = "price"; render(false);
     $("search").scrollIntoView({ behavior: "smooth" });
   });
-  dropsEl.addEventListener("click", function (e) {
-    var b = e.target.closest("[data-open]"); if (!b) return;
-    var c = b.getAttribute("data-open");
+  // Reise in der Liste öffnen: Filter so setzen, dass sie sicher sichtbar ist
+  function openTrip(code, sameRoute) {
+    var t = BYCODE[code]; if (!t) return;
     fRegion.value = fBrand.value = fMonth.value = fNights.value = fMax.value = ""; fFav.checked = false;
-    fSort.value = "drop"; fText.value = ""; openCode = c; render(false);
-    var el = document.getElementById("t-" + c);
-    if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+    fText.value = sameRoute ? t.h : ""; fSort.value = sameRoute ? "date" : fSort.value;
+    openCode = code;
+    current = filtered();
+    var idx = current.indexOf(t);
+    shown = Math.max(PAGE, idx + 1);
+    render(true);
+    var el = document.getElementById("t-" + code);
+    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+  [dropsEl, $("lm")].forEach(function (box) {
+    box.addEventListener("click", function (e) {
+      var b = e.target.closest("[data-open]"); if (b) openTrip(b.getAttribute("data-open"), false);
+    });
   });
+
+  /* ---------- Geburtstagsgruß ---------- */
+  (function () {
+    var g = D.gruss; if (!g) return;
+    var now = new Date(), iso = now.getFullYear() + "-" + String(now.getMonth() + 1).padStart(2, "0") + "-" + String(now.getDate()).padStart(2, "0");
+    var show = /[?&]gruss\b/.test(location.search) || ((!g.ab || iso >= g.ab) && (!g.bis || iso <= g.bis));
+    if (!show) return;
+    $("gruss").innerHTML = "<section class='gruss' aria-label='Gruß'><div class='icon' aria-hidden='true'>🎂</div>" +
+      "<h2>" + esc(g.titel) + "</h2><p>" + esc(g.text) + "</p>" + (g.unterschrift ? "<p class='sig'>" + esc(g.unterschrift) + "</p>" : "") + "</section>";
+  })();
+
+  /* ---------- Spontan los (nächste 8 Wochen) ---------- */
+  (function () {
+    var start = pd(D.stand), end = new Date(start.getTime() + 56 * 864e5);
+    var lm = D.trips.filter(function (t) {
+      var d = pd(t.f); return !t.flightOnly && t.perNight != null && d > start && d <= end;
+    }).sort(function (a, b) { return a.perNight - b.perNight; }).slice(0, 6);
+    var box = $("lm");
+    if (!lm.length) { $("lm-sec").style.display = "none"; return; }
+    box.innerHTML = "<div class='grid'>" + lm.map(function (t) {
+      var days = Math.round((pd(t.f) - start) / 864e5);
+      return "<button type='button' class='card drop' data-open='" + esc(t.c) + "'>" +
+        "<span class='row'>" + brandTag(t) + "<span class='tag'>in " + days + " Tagen</span></span>" +
+        "<span class='t'>" + esc(t.h) + "</span>" +
+        "<span class='meta'>" + esc(t.s) + " · " + dShort(t.f) + " · " + t.n + " Nächte</span>" +
+        "<span class='row'><span class='price num'>" + eur(t.cur) + "</span><span class='meta num'>" + eur(t.perNight) + " pro Nacht</span></span></button>";
+    }).join("") + "</div>";
+  })();
+
+  /* ---------- Preiskalender ---------- */
+  var calBrand = "", calMetric = "total";
+  function renderCal() {
+    var startM = D.stand.slice(0, 7), months = {};
+    var pool = D.trips.filter(function (t) {
+      return !t.flightOnly && t.cur != null && t.month >= startM && (!calBrand || t.b === calBrand);
+    });
+    pool.forEach(function (t) { months[t.month] = 1; });
+    var ms = Object.keys(months).sort().slice(0, 18);
+    var val = function (t) { return calMetric === "night" ? t.perNight : t.cur; };
+    var head = "<thead><tr><th></th>" + ms.map(function (m, i) {
+      var a = m.split("-");
+      return "<th>" + MO[+a[1] - 1] + (i === 0 || a[1] === "01" ? "<br><span class='yr'>" + a[0] + "</span>" : "") + "</th>";
+    }).join("") + "</tr></thead>";
+    var body = D.regions.map(function (r) {
+      var cells = ms.map(function (m) {
+        var x = pool.filter(function (t) { return t.r === r && t.month === m; });
+        if (!x.length) return null;
+        return x.reduce(function (a, t) { return val(t) < val(a) ? t : a; });
+      });
+      var vs = cells.filter(Boolean).map(val);
+      if (!vs.length) return "";
+      var lo = Math.min.apply(null, vs), hi = Math.max.apply(null, vs);
+      return "<tr><th scope='row'>" + esc(r) + "</th>" + cells.map(function (t, i) {
+        if (!t) return "<td class='none'>·</td>";
+        var v = val(t), q = hi > lo ? (hi - v) / (hi - lo) : 0.5, bin = Math.min(4, Math.floor(q * 5));
+        var a = ms[i].split("-");
+        var tip = r + ", " + MOL[+a[1] - 1] + " " + a[0] + ": ab " + eur(t.cur) + " p. P. (" + eur(t.perNight) + "/Nacht) – " + t.b + ", " + t.h;
+        return "<td class='b" + bin + "' title='" + esc(tip) + "' data-r='" + esc(r) + "' data-m='" + ms[i] + "'>" +
+          nf.format(Math.round(v)) + "</td>";
+      }).join("") + "</tr>";
+    }).join("");
+    $("cal").innerHTML = head + "<tbody>" + body + "</tbody>";
+  }
+  function segInit(id, cb) {
+    $(id).addEventListener("click", function (e) {
+      var b = e.target.closest("button"); if (!b) return;
+      [].forEach.call(this.querySelectorAll("button"), function (x) { x.setAttribute("aria-pressed", x === b); });
+      cb(b.getAttribute("data-v")); renderCal();
+    });
+  }
+  segInit("calBrand", function (v) { calBrand = v; });
+  segInit("calMetric", function (v) { calMetric = v; });
+  $("cal").addEventListener("click", function (e) {
+    var c = e.target.closest("td[data-r]"); if (!c) return;
+    fRegion.value = c.getAttribute("data-r"); fMonth.value = c.getAttribute("data-m");
+    fBrand.value = calBrand; fNights.value = fMax.value = fText.value = ""; fFav.checked = false;
+    fSort.value = calMetric === "night" ? "night" : "price"; openCode = null; render(false);
+    $("search").scrollIntoView({ behavior: "smooth" });
+  });
+  renderCal();
 
   // Gespeicherte Filter wiederherstellen
   try {

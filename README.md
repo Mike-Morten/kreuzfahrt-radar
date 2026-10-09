@@ -49,3 +49,9 @@ Settings → Secrets and variables → Actions:
 
 Test: Actions → „Preise sammeln“ → Run workflow → Haken bei „Wochenbrief jetzt senden“.
 Vorschau lokal: `python wochenbrief.py --vorschau`
+
+## Einstellungen
+
+`einstellungen.json` enthält den Geburtstagsgruß oben im Dashboard (Titel, Text,
+Unterschrift, Zeitraum `ab`/`bis`). Vorschau außerhalb des Zeitraums: Dashboard-Link
+mit `?gruss` am Ende aufrufen.

@@ -19,6 +19,7 @@ from pathlib import Path
 from mein_schiff_tracker import SCRIPT_DIR, open_db
 
 TEMPLATE = SCRIPT_DIR / "dashboard_vorlage.html"
+SETTINGS = SCRIPT_DIR / "einstellungen.json"
 OUT_DIR = SCRIPT_DIR / "site"
 
 # Einheitliche Regionen für beide Reedereien.
@@ -122,7 +123,11 @@ def build_data(con, today: date) -> dict:
             del t["so"]
 
     present = {t["r"] for t in current}
+    settings = {}
+    if SETTINGS.exists():
+        settings = json.loads(SETTINGS.read_text(encoding="utf-8"))
     return {
+        "gruss": settings.get("gruss"),
         "stand": days[-1] if days else today.isoformat(),
         "days": days,
         "regions": [r for r in REGION_ORDER if r in present],
