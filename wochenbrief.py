@@ -31,7 +31,9 @@ from email.message import EmailMessage
 from email.utils import formataddr
 from pathlib import Path
 
-from dashboard_bauen import region_of, REGION_ORDER
+import json
+
+from dashboard_bauen import region_of, REGION_ORDER, SETTINGS
 from mein_schiff_tracker import SCRIPT_DIR, open_db
 
 DASHBOARD_URL = "https://mike-morten.github.io/kreuzfahrt-radar/"
@@ -117,9 +119,15 @@ def analyse(con, today: date | None = None) -> dict:
         if cand:
             best.append(min(cand, key=lambda t: t["now"]))
 
+    merk_codes = []
+    if SETTINGS.exists():
+        merk_codes = json.loads(SETTINGS.read_text(encoding="utf-8")).get("merkliste") or []
+    by_code = {t["code"]: t for t in current}
+    merk = sorted((by_code[c] for c in merk_codes if c in by_code), key=lambda t: t["date_from"])
+
     n_down = sum(1 for t in current if t["delta"] < 0)
     n_up = sum(1 for t in current if t["delta"] > 0)
-    return dict(last=last, ref=ref, days=len(days), drops=drops, records=records, best=best,
+    return dict(last=last, ref=ref, days=len(days), drops=drops, records=records, best=best, merk=merk,
                 n_current=len(current), n_down=n_down, n_up=n_up)
 
 
@@ -164,7 +172,11 @@ def build_mail(a: dict, anrede: str) -> tuple[str, str, str]:
     e = html.escape
     since = d_short(a["ref"]) if a["ref"] else None
 
-    if a["drops"]:
+    merk_down = [t for t in a.get("merk", []) if t["delta"] < 0]
+    if merk_down:
+        t = min(merk_down, key=lambda t: t["delta"])
+        betreff = f"Kreuzfahrt-Radar: Deine gemerkte Reise „{t['title']}“ ist {eur(-t['delta'])} günstiger"
+    elif a["drops"]:
         top = a["drops"][0]
         betreff = f"Kreuzfahrt-Radar: {e(top['title'])} jetzt {eur(-top['delta'])} günstiger"
     elif a["records"]:
@@ -174,6 +186,20 @@ def build_mail(a: dict, anrede: str) -> tuple[str, str, str]:
     betreff = html.unescape(betreff)
 
     parts = []
+    if a.get("merk"):
+        def merk_extra(t):
+            x = ""
+            if t["delta"]:
+                down = t["delta"] < 0
+                x += (f'<span style="display:inline-block;margin-left:8px;font-size:13px;font-weight:700;'
+                      f'color:{DOWN if down else "#b02a2a"};background:{DOWN_BG if down else "#fbe7e5"};border-radius:99px;padding:2px 8px">'
+                      f'{"▼" if down else "▲"} {eur(abs(t["delta"]))}</span>')
+            if t["prev_min"] is not None and t["now"] < t["prev_min"]:
+                x += (f'<span style="display:inline-block;margin-left:8px;font-size:13px;font-weight:700;color:#3a2a00;'
+                      f'background:{SAND};border-radius:6px;padding:2px 8px">Tiefstpreis</span>')
+            return x
+        sub = f"Preis im Vergleich zum {since}" if since else "Aktuelle Preise"
+        parts.append(_section("Deine Merkliste", sub, "".join(_trip_html(t, merk_extra(t)) for t in a["merk"])))
     if a["drops"]:
         rows = "".join(_trip_html(t, (
             f'<span style="font-size:14px;color:{MUTED};text-decoration:line-through;margin-left:6px">{eur(t["before"])}</span>'
@@ -229,6 +255,10 @@ def build_mail(a: dict, anrede: str) -> tuple[str, str, str]:
 
     # Text-Version für Mailprogramme ohne HTML
     lines = [f"Kreuzfahrt-Radar – Wochenbrief vom {d_short(a['last'])}", "", f"{anrede}hier ist dein Überblick.", ""]
+    if a.get("merk"):
+        lines += ["Deine Merkliste:"] + [
+            f"- {t['title']} ({t['brand']}, ab {d_short(t['date_from'])}): {eur(t['now'])}"
+            + (f" ({'−' if t['delta'] < 0 else '+'}{eur(abs(t['delta']))})" if t["delta"] else "") for t in a["merk"]] + [""]
     if a["drops"]:
         lines += [f"Diese Woche günstiger geworden (Vergleich mit dem {since}):"]
         lines += [f"- {t['title']} ({t['brand']}, ab {d_short(t['date_from'])}, {t['nights']} N.): "

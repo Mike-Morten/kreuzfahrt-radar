@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import shutil
 import sys
 from datetime import date
 from pathlib import Path
@@ -85,18 +86,21 @@ def build_data(con, today: date) -> dict:
             "c": code, "b": brand, "h": title, "s": ship, "f": d_from, "t": d_to,
             "n": nights, "r": reg, "p": ports or "", "u": url,
             "pp": [None] * len(days), "pf": [None] * len(days),
+            "po": [None] * len(days), "pb": [None] * len(days),
             "o": None, "k": None, "so": 0,
         }
 
-    for code, day, pp, pf, offers, cabin, sold_out in con.execute(
+    for code, day, pp, pf, offers, cabin, sold_out, po, pb in con.execute(
             "SELECT trip_code, snapshot_date, price_pp, price_pp_with_flight, offers, "
-            "cabin_type, sold_out FROM prices"):
+            "cabin_type, sold_out, price_pp_outside, price_pp_balcony FROM prices"):
         t = trips.get(code)
         if t is None:
             continue
         i = day_idx[day]
         t["pp"][i] = pp
         t["pf"][i] = pf
+        t["po"][i] = po
+        t["pb"][i] = pb
         if i == len(days) - 1:  # Angaben vom neuesten Tag
             t["o"], t["k"], t["so"] = offers, cabin, sold_out or 0
 
@@ -111,9 +115,10 @@ def build_data(con, today: date) -> dict:
                      if t["pp"][i] is not None or t["pf"][i] is not None)
         t["d0"] = first
         t["pp"] = t["pp"][first:]
-        t["pf"] = t["pf"][first:]
-        if all(v is None for v in t["pf"]):
-            del t["pf"]
+        for key in ("pf", "po", "pb"):
+            t[key] = t[key][first:]
+            if all(v is None for v in t[key]):
+                del t[key]
         if all(v is None for v in t["pp"]):
             del t["pp"]
         for k in ("o", "k"):
@@ -128,6 +133,8 @@ def build_data(con, today: date) -> dict:
         settings = json.loads(SETTINGS.read_text(encoding="utf-8"))
     return {
         "gruss": settings.get("gruss"),
+        "merkliste": settings.get("merkliste") or [],
+        "wunsch": settings.get("wunsch"),
         "stand": days[-1] if days else today.isoformat(),
         "days": days,
         "regions": [r for r in REGION_ORDER if r in present],
@@ -151,6 +158,10 @@ def main(argv: list[str] | None = None) -> int:
     out.mkdir(parents=True, exist_ok=True)
     (out / "index.html").write_text(html, encoding="utf-8")
     (out / ".nojekyll").write_text("", encoding="utf-8")
+    # App-Symbole und Manifest (für "Zum Startbildschirm hinzufügen")
+    for f in (SCRIPT_DIR / "app").glob("*"):
+        if f.is_file():
+            shutil.copy2(f, out / f.name)
     print(f"Dashboard: {len(data['trips'])} Reisen, {len(data['days'])} Tage "
           f"-> {out / 'index.html'} ({len(html) // 1024} KB)")
     return 0

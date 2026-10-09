@@ -8,6 +8,14 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,650&family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#123a5c">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Kreuzfahrt">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='15' fill='%23123a5c'/%3E%3Cpath d='M7 19h18l-3 5H10z' fill='%23fff'/%3E%3Cpath d='M15 8v10h-6z' fill='%23f0b44c'/%3E%3C/svg%3E">
 <style>
 :root {
@@ -92,8 +100,9 @@ button, select, input { font: inherit; color: inherit; }
 .hero p { margin: 0; color: #d5e2ee; max-width: 640px; }
 .hero .facts { display: flex; flex-wrap: wrap; gap: 8px 22px; margin-top: 18px; font-size: 15px; color: #d5e2ee; }
 .hero .facts b { color: #fff; font-size: 20px; display: block; font-weight: 700; }
-.theme-toggle {
-  position: absolute; top: 14px; right: 16px; z-index: 2; background: rgba(255,255,255,.12);
+.top-actions { position: absolute; top: 14px; right: 16px; z-index: 2; display: flex; gap: 8px; }
+.hero { padding-top: max(36px, calc(env(safe-area-inset-top) + 20px)); }
+.theme-toggle { background: rgba(255,255,255,.12);
   border: 0; color: #fff; border-radius: 999px; padding: 6px 12px; font-size: 14px; cursor: pointer;
 }
 
@@ -248,6 +257,56 @@ section { margin: 34px 0; }
 .sib-row .pr { text-align: right; font-variant-numeric: tabular-nums; }
 .sib-note { font-size: 13px; color: var(--muted); margin-top: 6px; }
 
+/* Kabinenwahl */
+.cabinbar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 22px 0 0; }
+.cabinbar .lbl { font-weight: 700; }
+.cabinbar .note { font-size: 13px; color: var(--muted); }
+
+/* Wunschreise & Merkliste */
+.wish-empty { padding: 20px; display: grid; grid-template-columns: auto 1fr; gap: 6px 16px; align-items: center; }
+.wish-empty .icon { font-size: 40px; grid-row: span 2; }
+.wish-empty p { margin: 0; color: var(--ink-2); }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 12px; }
+.chip { font-size: 14px; padding: 3px 10px; border-radius: 999px; background: var(--surface-2); color: var(--ink-2); }
+.sec-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.btn.small { min-height: 38px; padding: 0 14px; font-size: 15px; }
+.merk { padding: 4px 0; }
+.merk-row { display: grid; grid-template-columns: 1fr auto; gap: 2px 12px; padding: 10px 16px; width: 100%; text-align: left;
+  background: none; border: 0; border-bottom: 1px solid var(--line); cursor: pointer; }
+.merk-row:last-child { border-bottom: 0; }
+.merk-row:hover { background: var(--surface-2); }
+.merk-row .t { font-weight: 700; }
+.merk-row .meta { font-size: 14px; color: var(--ink-2); }
+.merk-row .pr { text-align: right; font-weight: 700; font-size: 18px; grid-row: span 2; align-self: center; }
+.merk-row .pr .delta, .merk-row .pr .tag { display: block; margin-top: 4px; font-size: 12px; text-align: center; }
+
+/* Formular im Dialog */
+.wf { display: grid; gap: 12px; margin: 6px 0 16px; }
+.wf fieldset { border: 0; padding: 0; margin: 0; }
+.wf legend, .wf .lab { font-size: 13px; font-weight: 700; color: var(--ink-2); margin-bottom: 6px; display: block; }
+.wf .regs { display: flex; flex-wrap: wrap; gap: 6px; }
+.wf .regs label { display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; border-radius: 999px; background: var(--surface-2); cursor: pointer; font-size: 14px; min-height: 36px; }
+.wf .regs input { width: 18px; height: 18px; margin: 0; }
+.wf .two { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.wf select, .wf input[type=number] { width: 100%; padding: 9px 10px; border-radius: 9px; border: 1px solid var(--line); background: var(--surface); min-height: 44px; font-size: 16px; }
+.wf .hint { font-size: 13px; color: var(--muted); margin-top: 4px; }
+dialog { max-height: 90vh; overflow: auto; }
+dialog.wide { max-width: min(94vw, 560px); }
+.merk-import li { font-size: 15px; }
+
+.toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%) translateY(20px); background: var(--ink); color: var(--surface);
+  padding: 10px 16px; border-radius: 10px; font-size: 15px; opacity: 0; transition: opacity .2s, transform .2s; pointer-events: none; z-index: 50; }
+.toast.on { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* Dialog */
+dialog { border: 0; border-radius: 16px; padding: 22px; max-width: min(92vw, 440px); background: var(--surface); color: var(--ink); box-shadow: 0 10px 40px rgba(0,0,0,.3); }
+dialog::backdrop { background: rgba(10,20,30,.45); }
+dialog h3 { font-size: 22px; margin-bottom: 10px; }
+dialog ol { padding-left: 20px; margin: 8px 0 16px; }
+dialog li { margin: 6px 0; }
+dialog .row-end { display: flex; justify-content: flex-end; gap: 8px; flex-wrap: wrap; }
+.btn.ghost { background: var(--surface-2); color: var(--ink); }
+
 footer { color: var(--muted); font-size: 14px; padding: 20px 0 40px; border-top: 1px solid var(--line); margin-top: 40px; }
 
 @media (max-width: 520px) {
@@ -261,7 +320,10 @@ footer { color: var(--muted); font-size: 14px; padding: 20px 0 40px; border-top:
 <body>
 
 <header class="hero">
-  <button class="theme-toggle" id="themeToggle" type="button" aria-label="Hell/Dunkel umschalten">◐ Ansicht</button>
+  <div class="top-actions">
+    <button class="theme-toggle" id="installBtn" type="button" hidden>📲 Als App</button>
+    <button class="theme-toggle" id="themeToggle" type="button" aria-label="Hell/Dunkel umschalten">◐ Ansicht</button>
+  </div>
   <div class="wrap">
     <div class="eyebrow">Mein Schiff · AIDA</div>
     <h1>Kreuzfahrt-Radar</h1>
@@ -287,6 +349,32 @@ footer { color: var(--muted); font-size: 14px; padding: 20px 0 40px; border-top:
 <main class="wrap">
 
   <div id="gruss"></div>
+
+  <div class="cabinbar" role="group" aria-labelledby="cabinLbl">
+    <span class="lbl" id="cabinLbl">Preise für:</span>
+    <div class="seg" id="cabinSeg">
+      <button type="button" data-v="any" aria-pressed="true">Günstigste Kabine</button>
+      <button type="button" data-v="outside" aria-pressed="false">Außen</button>
+      <button type="button" data-v="balcony" aria-pressed="false">Balkon</button>
+    </div>
+    <span class="note" id="cabinNote"></span>
+  </div>
+
+  <section id="wish-sec" aria-labelledby="wish-h">
+    <div class="sec-head">
+      <h2 id="wish-h">Meine Wunschreise</h2>
+      <div class="sec-actions" id="wish-actions"></div>
+    </div>
+    <div id="wish"></div>
+  </section>
+
+  <section id="merk-sec" aria-labelledby="merk-h" hidden>
+    <div class="sec-head">
+      <h2 id="merk-h">Meine Merkliste</h2>
+      <div class="sec-actions"><button class="btn small ghost" type="button" id="shareBtn">Merkliste teilen</button></div>
+    </div>
+    <div class="card merk" id="merk"></div>
+  </section>
 
   <section id="drops-sec" aria-labelledby="drops-h">
     <div class="sec-head">
@@ -375,7 +463,8 @@ footer { color: var(--muted); font-size: 14px; padding: 20px 0 40px; border-top:
       <label>Suche
         <input id="fText" type="search" placeholder="Hafen, Schiff, Titel …">
       </label>
-      <label class="chk"><input type="checkbox" id="fFav"> Nur Favoriten ★</label>
+      <label class="chk"><input type="checkbox" id="fFav"> Nur Merkliste ★</label>
+      <label class="chk" id="fWishLbl" hidden><input type="checkbox" id="fWish"> Nur Wunschreise</label>
     </form>
     <div class="result-info"><span id="count" aria-live="polite"></span><button class="linkbtn" id="reset" type="button">Filter zurücksetzen</button></div>
     <div class="list" id="list"></div>
@@ -387,6 +476,35 @@ footer { color: var(--muted); font-size: 14px; padding: 20px 0 40px; border-top:
 <footer>
   <div class="wrap" id="foot"></div>
 </footer>
+
+<dialog id="installDlg" aria-labelledby="installH">
+  <h3 id="installH">Als App auf den Startbildschirm</h3>
+  <div id="installTxt"></div>
+  <div class="row-end"><button class="btn" type="button" id="installClose">Verstanden</button></div>
+</dialog>
+
+<dialog id="wishDlg" class="wide" aria-labelledby="wishH">
+  <h3 id="wishH">Meine Wunschreise</h3>
+  <p style="margin:0 0 10px;color:var(--ink-2)">Was dir egal ist, lässt du einfach frei.</p>
+  <form id="wishForm" class="wf" method="dialog"></form>
+  <div class="row-end">
+    <button class="btn ghost" type="button" id="wishDel">Wunsch löschen</button>
+    <button class="btn ghost" type="button" id="wishCancel">Abbrechen</button>
+    <button class="btn" type="button" id="wishSave">Speichern</button>
+  </div>
+</dialog>
+
+<dialog id="importDlg" aria-labelledby="importH">
+  <h3 id="importH">Merkliste übernehmen?</h3>
+  <p id="importTxt" style="margin:0"></p>
+  <ul class="merk-import" id="importList"></ul>
+  <div class="row-end">
+    <button class="btn ghost" type="button" id="importNo">Nein danke</button>
+    <button class="btn" type="button" id="importYes" autofocus>Zur Merkliste hinzufügen</button>
+  </div>
+</dialog>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script id="daten" type="application/json">__DATEN__</script>
 <script>
@@ -415,25 +533,39 @@ footer { color: var(--muted); font-size: 14px; padding: 20px 0 40px; border-top:
   }
 
   /* ---------- Kennzahlen je Reise ---------- */
+  function lastOf(a) { return a ? a[a.length - 1] : null; }
   D.trips.forEach(function (t) {
     t.flightOnly = !t.pp;
-    t.series = t.pp || t.pf;                       // Preisreihe ab Tag d0
-    var s = t.series, n = s.length;
-    t.cur = s[n - 1];
-    t.flight = t.pf ? t.pf[t.pf.length - 1] : null;
-    var prev = null;
-    for (var i = n - 2; i >= 0; i--) if (s[i] != null) { prev = s[i]; break; }
-    t.prev = prev;
-    t.delta = (prev != null && t.cur != null) ? t.cur - prev : 0;
-    var vals = s.filter(function (v) { return v != null; });
-    t.min = Math.min.apply(null, vals); t.max = Math.max.apply(null, vals);
-    t.record = vals.length > 1 && t.cur === t.min && t.max > t.min;   // neuer Tiefstpreis
-    t.perNight = t.cur != null && t.n ? t.cur / t.n : null;
+    t.flight = lastOf(t.pf);
+    t.C = { any: lastOf(t.pp || t.pf), outside: lastOf(t.po), balcony: lastOf(t.pb) };   // aktuelle Preise je Kabine
     t.month = t.f.slice(0, 7);
     t.isNew = t.d0 === LAST && LAST > 0;
     t.hay = (t.h + " " + t.s + " " + t.p + " " + t.r + " " + t.b).toLowerCase();
     t.g = t.b + "|" + t.n + "|" + t.h;
   });
+  // Preisreihe & Kennzahlen für die gewählte Kabine berechnen
+  var CABIN_LABEL = { any: "", outside: "Außenkabine", balcony: "Balkonkabine" };
+  var cabin = "any";
+  function applyCabin(mode) {
+    cabin = mode;
+    D.trips.forEach(function (t) {
+      var s = mode === "outside" ? t.po : mode === "balcony" ? t.pb : (t.pp || t.pf);
+      t.series = s || [];
+      var n = t.series.length;
+      t.cur = n ? s[n - 1] : null;
+      var prev = null;
+      for (var i = n - 2; i >= 0; i--) if (s[i] != null) { prev = s[i]; break; }
+      t.prev = prev;
+      t.delta = (prev != null && t.cur != null) ? t.cur - prev : 0;
+      var vals = t.series.filter(function (v) { return v != null; });
+      t.min = vals.length ? Math.min.apply(null, vals) : null;
+      t.max = vals.length ? Math.max.apply(null, vals) : null;
+      t.record = t.cur != null && vals.length > 1 && t.cur === t.min && t.max > t.min;   // neuer Tiefstpreis
+      t.perNight = t.cur != null && t.n ? t.cur / t.n : null;
+    });
+  }
+  applyCabin("any");
+
   var BYCODE = {}, GROUPS = {};
   D.trips.forEach(function (t) {
     BYCODE[t.c] = t;
@@ -442,10 +574,14 @@ footer { color: var(--muted); font-size: 14px; padding: 20px 0 40px; border-top:
 
   /* ---------- Favoriten ---------- */
   var favs = {};
-  try { (JSON.parse(store(true, "kr-fav") || "[]")).forEach(function (c) { favs[c] = 1; }); } catch (e) {}
+  try {
+    var storedFav = store(true, "kr-fav");
+    (storedFav === null ? (D.merkliste || []) : JSON.parse(storedFav)).forEach(function (c) { favs[c] = 1; });
+  } catch (e) {}
   function saveFavs() { store(false, "kr-fav", JSON.stringify(Object.keys(favs))); }
 
   /* ---------- Kopfzeile ---------- */
+  function renderFacts() {
   var ms = D.trips.filter(function (t) { return t.b === "Mein Schiff"; }).length;
   var aida = D.trips.length - ms;
   var cheapest = D.trips.reduce(function (a, t) { return (t.cur != null && !t.flightOnly && (a == null || t.cur < a.cur)) ? t : a; }, null);
@@ -453,8 +589,9 @@ footer { color: var(--muted); font-size: 14px; padding: 20px 0 40px; border-top:
     "<div><b>" + dShort(D.stand) + "</b>Stand der Preise</div>" +
     "<div><b class='num'>" + nf.format(D.trips.length) + "</b>Abfahrten</div>" +
     "<div><b class='num'>" + nf.format(ms) + " / " + nf.format(aida) + "</b>Mein Schiff / AIDA</div>" +
-    (cheapest ? "<div><b class='num'>ab " + eur(cheapest.cur) + "</b>günstigste Reise p. P.</div>" : "") +
+    (cheapest ? "<div><b class='num'>ab " + eur(cheapest.cur) + "</b>günstigste " + (cabin === "any" ? "Reise" : CABIN_LABEL[cabin]) + " p. P.</div>" : "") +
     "<div><b class='num'>" + DAYS.length + "</b>" + (DAYS.length === 1 ? "Tag" : "Tage") + " Preisverlauf</div>";
+  }
 
   /* ---------- Preissenkungen ---------- */
   function brandTag(t) { return "<span class='brand " + (t.b === "AIDA" ? "aida" : "ms") + "'>" + esc(t.b) + "</span>"; }
@@ -464,9 +601,10 @@ footer { color: var(--muted); font-size: 14px; padding: 20px 0 40px; border-top:
       ? "<span class='delta down' title='günstiger als beim letzten Mal'>▼ " + eur(-d) + "</span>"
       : "<span class='delta up' title='teurer als beim letzten Mal'>▲ " + eur(d) + "</span>";
   }
-  var drops = D.trips.filter(function (t) { return t.delta < 0; })
-    .sort(function (a, b) { return a.delta - b.delta; }).slice(0, 6);
   var dropsEl = document.getElementById("drops");
+  function renderDrops() {
+  var drops = D.trips.filter(function (t) { return t.delta < 0; })
+    .sort(function (a, b) { return a.delta / a.prev - b.delta / b.prev; }).slice(0, 6);
   if (LAST < 1) {
     document.getElementById("drops-sub").textContent = "";
     dropsEl.innerHTML = "<div class='card empty'>Die Preise werden seit dem " + dLong(DAYS[0]) +
@@ -485,9 +623,11 @@ footer { color: var(--muted); font-size: 14px; padding: 20px 0 40px; border-top:
         (t.record ? "<span class='tag low'>Tiefstpreis</span>" : "") + "</span></button>";
     }).join("") + "</div>";
   }
+  }
 
   /* ---------- Regionen ---------- */
   var regEl = document.getElementById("regions");
+  function renderRegions() {
   regEl.innerHTML = D.regions.map(function (r) {
     var inR = D.trips.filter(function (t) { return t.r === r && !t.flightOnly && t.cur != null; });
     function best(b) {
@@ -499,15 +639,16 @@ footer { color: var(--muted); font-size: 14px; padding: 20px 0 40px; border-top:
     }
     var all = D.trips.filter(function (t) { return t.r === r; }).length;
     var body = best("Mein Schiff") + best("AIDA");
-    if (!body) body = "<span class='count'>nur als Paket mit Flug</span>";
+    if (!body) body = "<span class='count'>" + (cabin === "any" ? "nur als Paket mit Flug" : "kein Preis für " + CABIN_LABEL[cabin]) + "</span>";
     return "<button type='button' class='card region' data-region='" + esc(r) + "'><h3>" + esc(r) + "</h3>" + body +
       "<span class='count'>" + nf.format(all) + " Abfahrten</span></button>";
   }).join("");
+  }
 
   /* ---------- Filter ---------- */
   var $ = function (id) { return document.getElementById(id); };
   var fRegion = $("fRegion"), fBrand = $("fBrand"), fMonth = $("fMonth"), fNights = $("fNights"),
-      fMax = $("fMax"), fSort = $("fSort"), fText = $("fText"), fFav = $("fFav");
+      fMax = $("fMax"), fSort = $("fSort"), fText = $("fText"), fFav = $("fFav"), fWish = $("fWish");
   D.regions.forEach(function (r) { fRegion.add(new Option(r, r)); });
   var months = {};
   D.trips.forEach(function (t) { months[t.month] = 1; });
@@ -530,6 +671,8 @@ footer { color: var(--muted); font-size: 14px; padding: 20px 0 40px; border-top:
       if (!isNaN(mx) && (t.cur == null || t.cur > mx)) return false;
       if (q && t.hay.indexOf(q) < 0) return false;
       if (fav && !favs[t.c]) return false;
+      if (t.cur == null) return false;
+      if (fWish.checked && !matchWish(t)) return false;
       return true;
     });
     var s = fSort.value;
@@ -559,7 +702,7 @@ footer { color: var(--muted); font-size: 14px; padding: 20px 0 40px; border-top:
         "<div><div class='trip-title'>" + esc(t.h) + "</div>" +
         "<div class='trip-sub'>" + brandTag(t) + "<span>" + esc(t.s) + "</span><span>" + dShort(t.f) + " – " + dShort(t.t) +
         " " + t.f.slice(0, 4) + "</span><span>" + t.n + " Nächte</span></div></div>" +
-        "<div class='trip-price'><div class='big num'>" + eur(t.cur) + "</div><div class='small'>p. P." +
+        "<div class='trip-price'><div class='big num'>" + eur(t.cur) + "</div><div class='small'>" + (cabin === "any" ? "" : CABIN_LABEL[cabin] + " · ") + "p. P." +
         (t.flightOnly ? " inkl. Flug" : "") + (t.perNight ? " · " + eur(t.perNight) + "/Nacht" : "") + "</div></div>" +
         (t.p ? "<div class='trip-ports'>" + esc(t.p) + "</div>" : "") +
         "<div class='trip-badges'>" + badges.join("") + "</div>" +
@@ -576,13 +719,18 @@ footer { color: var(--muted); font-size: 14px; padding: 20px 0 40px; border-top:
     ];
     if (t.p) rows.push(["Route", esc(t.p)]);
     if (!t.flightOnly && t.flight != null) rows.push(["Mit Flug", eur(t.flight) + " p. P."]);
-    if (t.k) rows.push(["Kabine", esc(({ Interior: "Innenkabine", Outside: "Außenkabine", Balcony: "Balkonkabine", JuniorSuite: "Junior Suite", Suite: "Suite" })[t.k] || t.k)]);
+    var KN = { Interior: "Innenkabine", Outside: "Außenkabine", Balcony: "Balkonkabine", Veranda: "Verandakabine", JuniorSuite: "Junior Suite", Suite: "Suite" };
+    var kab = [];
+    if (t.C.any != null) kab.push("günstigste " + eur(t.C.any) + (t.k ? " (" + esc(KN[t.k] || t.k) + ")" : ""));
+    if (t.C.outside != null) kab.push("Außen " + eur(t.C.outside));
+    if (t.C.balcony != null) kab.push("Balkon " + eur(t.C.balcony));
+    if (kab.length) rows.push(["Kabinen", kab.join(" · ")]);
     if (t.o) rows.push(["Aktionen", esc(offers(t).join(", "))]);
     var seen = t.series.filter(function (v) { return v != null; }).length;
     if (seen > 1 && t.max > t.min) rows.push(["Preisspanne", "zwischen " + eur(t.min) + " und " + eur(t.max)]);
     rows.push(["Beobachtet seit", dLong(DAYS[t.d0])]);
     return "<div class='detail'>" +
-      "<div class='chart-box'><h4>Preisverlauf pro Person" + (t.flightOnly ? " (inkl. Flug)" : "") + "</h4>" +
+      "<div class='chart-box'><h4>Preisverlauf pro Person" + (cabin !== "any" ? " – " + CABIN_LABEL[cabin] : t.flightOnly ? " (inkl. Flug)" : "") + "</h4>" +
       "<div class='chart' data-chart='" + esc(t.c) + "'></div>" +
       (seen < 2 ? "<p class='chart-note'>Der Verlauf füllt sich mit jedem Sammeltag.</p>" : "") + "</div>" +
       "<dl>" + rows.map(function (r) { return "<dt>" + r[0] + "</dt><dd>" + r[1] + "</dd>"; }).join("") + "</dl>" +
@@ -687,7 +835,7 @@ footer { color: var(--muted); font-size: 14px; padding: 20px 0 40px; border-top:
   moreBtn.addEventListener("click", function () { shown += PAGE; render(true); });
   $("reset").addEventListener("click", function () {
     fRegion.value = fBrand.value = fMonth.value = fNights.value = fMax.value = fText.value = "";
-    fSort.value = "price"; fFav.checked = false; render(false);
+    fSort.value = "price"; fFav.checked = false; fWish.checked = false; render(false);
   });
 
   function toggle(code) {
@@ -700,7 +848,8 @@ footer { color: var(--muted); font-size: 14px; padding: 20px 0 40px; border-top:
       e.stopPropagation();
       var c = f.getAttribute("data-fav");
       if (favs[c]) delete favs[c]; else favs[c] = 1;
-      saveFavs(); render(true); return;
+      saveFavs(); render(true); renderMerk(); renderWish();
+      toast(favs[c] ? "Auf die Merkliste gesetzt ★" : "Von der Merkliste entfernt"); return;
     }
     if (e.target.closest("a")) return;
     var go = e.target.closest("[data-goto]");
@@ -721,7 +870,7 @@ footer { color: var(--muted); font-size: 14px; padding: 20px 0 40px; border-top:
   // Reise in der Liste öffnen: Filter so setzen, dass sie sicher sichtbar ist
   function openTrip(code, sameRoute) {
     var t = BYCODE[code]; if (!t) return;
-    fRegion.value = fBrand.value = fMonth.value = fNights.value = fMax.value = ""; fFav.checked = false;
+    fRegion.value = fBrand.value = fMonth.value = fNights.value = fMax.value = ""; fFav.checked = false; fWish.checked = false;
     fText.value = sameRoute ? t.h : ""; fSort.value = sameRoute ? "date" : fSort.value;
     openCode = code;
     current = filtered();
@@ -748,13 +897,14 @@ footer { color: var(--muted); font-size: 14px; padding: 20px 0 40px; border-top:
   })();
 
   /* ---------- Spontan los (nächste 8 Wochen) ---------- */
-  (function () {
+  function renderLm() {
     var start = pd(D.stand), end = new Date(start.getTime() + 56 * 864e5);
     var lm = D.trips.filter(function (t) {
       var d = pd(t.f); return !t.flightOnly && t.perNight != null && d > start && d <= end;
     }).sort(function (a, b) { return a.perNight - b.perNight; }).slice(0, 6);
     var box = $("lm");
-    if (!lm.length) { $("lm-sec").style.display = "none"; return; }
+    $("lm-sec").style.display = lm.length ? "" : "none";
+    if (!lm.length) return;
     box.innerHTML = "<div class='grid'>" + lm.map(function (t) {
       var days = Math.round((pd(t.f) - start) / 864e5);
       return "<button type='button' class='card drop' data-open='" + esc(t.c) + "'>" +
@@ -763,7 +913,7 @@ footer { color: var(--muted); font-size: 14px; padding: 20px 0 40px; border-top:
         "<span class='meta'>" + esc(t.s) + " · " + dShort(t.f) + " · " + t.n + " Nächte</span>" +
         "<span class='row'><span class='price num'>" + eur(t.cur) + "</span><span class='meta num'>" + eur(t.perNight) + " pro Nacht</span></span></button>";
     }).join("") + "</div>";
-  })();
+  }
 
   /* ---------- Preiskalender ---------- */
   var calBrand = "", calMetric = "total";
@@ -815,7 +965,6 @@ footer { color: var(--muted); font-size: 14px; padding: 20px 0 40px; border-top:
     fSort.value = calMetric === "night" ? "night" : "price"; openCode = null; render(false);
     $("search").scrollIntoView({ behavior: "smooth" });
   });
-  renderCal();
 
   // Gespeicherte Filter wiederherstellen
   try {
@@ -836,9 +985,219 @@ footer { color: var(--muted); font-size: 14px; padding: 20px 0 40px; border-top:
 
   window.addEventListener("resize", function () { if (openCode) render(true); });
 
+  /* ---------- Als App installieren ---------- */
+  (function () {
+    var standalone = matchMedia("(display-mode: standalone)").matches || navigator.standalone;
+    if (standalone) return;
+    var btn = $("installBtn"), dlg = $("installDlg"), deferred = null;
+    var ios = /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+    var mobile = ios || /android/i.test(navigator.userAgent);
+    window.addEventListener("beforeinstallprompt", function (e) { e.preventDefault(); deferred = e; btn.hidden = false; });
+    if (mobile) btn.hidden = false;
+    btn.addEventListener("click", function () {
+      if (deferred) { deferred.prompt(); deferred.userChoice.then(function () { deferred = null; }); return; }
+      $("installTxt").innerHTML = ios
+        ? "<ol><li>Unten in Safari auf <b>Teilen</b> tippen (Quadrat mit Pfeil nach oben).</li><li><b>Zum Home-Bildschirm</b> wählen – eventuell etwas nach unten scrollen.</li><li>Oben rechts auf <b>Hinzufügen</b> tippen.</li></ol><p>Danach liegt das Kreuzfahrt-Radar mit eigenem Symbol auf dem Startbildschirm.</p>"
+        : "<ol><li>Oben rechts im Browser auf das <b>Menü ⋮</b> tippen.</li><li><b>Zum Startbildschirm hinzufügen</b> bzw. <b>App installieren</b> wählen.</li><li>Mit <b>Hinzufügen</b> bestätigen.</li></ol>";
+      if (dlg.showModal) dlg.showModal(); else alert($("installTxt").textContent);
+    });
+    $("installClose").addEventListener("click", function () { dlg.close(); });
+  })();
+
   $("foot").innerHTML = "Preise pro Person bei 2 Erwachsenen in der günstigsten freien Kabine, wie auf meinschiff.com und aida.de angezeigt. " +
     "Alle Angaben ohne Gewähr – maßgeblich ist der Preis bei der Buchung. Aktualisiert jeden Morgen, zuletzt am " + dLong(D.stand) + ".";
 
+  /* ---------- Toast ---------- */
+  var toastT;
+  function toast(msg) {
+    var el = $("toast"); el.textContent = msg; el.classList.add("on");
+    clearTimeout(toastT); toastT = setTimeout(function () { el.classList.remove("on"); }, 2600);
+  }
+
+  /* ---------- Wunschreise ---------- */
+  var wish = null;
+  try { wish = JSON.parse(store(true, "kr-wish") || "null"); } catch (e) {}
+  if (!wish && D.wunsch) wish = D.wunsch;
+  function monthName(m) { var a = m.split("-"); return MOL[+a[1] - 1] + " " + a[0]; }
+  function matchWish(t, w) {
+    w = w || wish; if (!w) return true;
+    var p = t.C[w.kabine || "any"];
+    if (p == null) return false;
+    if (w.regionen && w.regionen.length && w.regionen.indexOf(t.r) < 0) return false;
+    if (w.reederei && t.b !== w.reederei) return false;
+    if (w.von && t.month < w.von) return false;
+    if (w.bis && t.month > w.bis) return false;
+    if (w.nmin && t.n < w.nmin) return false;
+    if (w.nmax && t.n > w.nmax) return false;
+    if (w.budget && p > w.budget) return false;
+    return true;
+  }
+  function wishChips(w) {
+    var c = [];
+    c.push(w.regionen && w.regionen.length ? w.regionen.join(", ") : "Alle Regionen");
+    if (w.reederei) c.push(w.reederei);
+    if (w.von || w.bis) c.push((w.von ? "ab " + monthName(w.von) : "") + (w.von && w.bis ? " " : "") + (w.bis ? "bis " + monthName(w.bis) : ""));
+    if (w.nmin || w.nmax) c.push(w.nmin && w.nmax ? w.nmin + "–" + w.nmax + " Nächte" : w.nmin ? "ab " + w.nmin + " Nächte" : "bis " + w.nmax + " Nächte");
+    if (w.budget) c.push("bis " + eur(w.budget) + " p. P.");
+    if (w.kabine && w.kabine !== "any") c.push(CABIN_LABEL[w.kabine]);
+    return c.map(function (x) { return "<span class='chip'>" + esc(x) + "</span>"; }).join("");
+  }
+  function renderWish() {
+    var box = $("wish"), act = $("wish-actions");
+    $("fWishLbl").hidden = !wish;
+    if (!wish) {
+      fWish.checked = false;
+      act.innerHTML = "";
+      box.innerHTML = "<div class='card wish-empty'><div class='icon' aria-hidden='true'>⛵</div>" +
+        "<p><b>Wie sieht deine Traumreise aus?</b> Region, Zeitraum, Dauer, Budget und Kabine einmal einstellen – dann stehen hier immer die passenden Angebote.</p>" +
+        "<div><button class='btn small' type='button' data-wish-edit>Wunschreise einstellen</button></div></div>";
+      return;
+    }
+    act.innerHTML = "<button class='btn small ghost' type='button' data-wish-edit>Ändern</button>";
+    var kab = wish.kabine || "any";
+    var hits = D.trips.filter(function (t) { return matchWish(t); })
+      .sort(function (a, b) { return a.C[kab] - b.C[kab]; });
+    // pro Route nur den günstigsten Termin zeigen, die übrigen mitzählen
+    var seenG = {}, top = [];
+    hits.forEach(function (t) {
+      if (seenG[t.g]) { seenG[t.g].more++; return; }
+      seenG[t.g] = { t: t, more: 0 };
+      if (top.length < 6) top.push(t);
+    });
+    box.innerHTML = "<div class='chips'>" + wishChips(wish) + "</div>" + (hits.length
+      ? "<div class='grid'>" + top.map(function (t) {
+          return "<button type='button' class='card drop' data-open='" + esc(t.c) + "' data-cab='" + kab + "'>" +
+            "<span class='row'>" + brandTag(t) + (favs[t.c] ? "<span class='tag low'>★ gemerkt</span>" : "") + "</span>" +
+            "<span class='t'>" + esc(t.h) + "</span>" +
+            "<span class='meta'>" + esc(t.s) + " · " + dShort(t.f) + " " + t.f.slice(0, 4) + " · " + t.n + " Nächte" +
+            (seenG[t.g].more ? "<br>+ " + seenG[t.g].more + " weitere" + (seenG[t.g].more === 1 ? "r Termin" : " Termine") + " passen" : "") + "</span>" +
+            "<span class='row'><span class='price num'>" + eur(t.C[kab]) + "</span><span class='meta num'>" +
+            (kab === "any" ? "" : CABIN_LABEL[kab] + " · ") + eur(t.C[kab] / t.n) + "/Nacht</span></span></button>";
+        }).join("") + "</div>" +
+        (hits.length > top.length ? "<p style='margin:12px 0 0'><button class='linkbtn' type='button' id='wishAll'>Alle " + nf.format(hits.length) + " passenden Reisen anzeigen</button></p>" : "")
+      : "<div class='card empty'>Gerade passt keine Reise zu diesem Wunsch. Vielleicht Budget, Zeitraum oder Regionen etwas lockern?</div>");
+    var all = $("wishAll");
+    if (all) all.addEventListener("click", function () {
+      setCabin(kab);
+      fRegion.value = fBrand.value = fMonth.value = fNights.value = fMax.value = fText.value = ""; fFav.checked = false;
+      fWish.checked = true; fSort.value = "price"; openCode = null; render(false);
+      $("search").scrollIntoView({ behavior: "smooth" });
+    });
+  }
+  $("wish").addEventListener("click", function (e) {
+    var b = e.target.closest("[data-open]"); if (!b) return;
+    setCabin(b.getAttribute("data-cab") || cabin);
+    openTrip(b.getAttribute("data-open"), false);
+  });
+  document.addEventListener("click", function (e) { if (e.target.closest("[data-wish-edit]")) openWishDlg(); });
+
+  var MONTH_KEYS = Object.keys(months).sort();
+  function openWishDlg() {
+    var w = wish || {};
+    function opt(v, label, sel) { return "<option value='" + esc(v) + "'" + (String(sel || "") === String(v) ? " selected" : "") + ">" + esc(label) + "</option>"; }
+    function monthSel(id, val) {
+      return "<select id='" + id + "'>" + opt("", "egal", val) + MONTH_KEYS.map(function (m) { return opt(m, monthName(m), val); }).join("") + "</select>";
+    }
+    $("wishForm").innerHTML =
+      "<fieldset><legend>Regionen</legend><div class='regs'>" + D.regions.map(function (r) {
+        return "<label><input type='checkbox' name='reg' value='" + esc(r) + "'" + (w.regionen && w.regionen.indexOf(r) >= 0 ? " checked" : "") + "> " + esc(r) + "</label>";
+      }).join("") + "</div><div class='hint'>Nichts angehakt = alle Regionen</div></fieldset>" +
+      "<div><span class='lab'>Reederei</span><select id='wBrand'>" + opt("", "Beide", w.reederei) + opt("Mein Schiff", "Mein Schiff", w.reederei) + opt("AIDA", "AIDA", w.reederei) + "</select></div>" +
+      "<div><span class='lab'>Abreise</span><div class='two'>" + monthSel("wVon", w.von) + monthSel("wBis", w.bis) + "</div><div class='hint'>frühestens – spätestens</div></div>" +
+      "<div><span class='lab'>Dauer (Nächte)</span><div class='two'><select id='wNmin'>" + opt("", "mindestens: egal", w.nmin) +
+        [3, 5, 7, 10, 14].map(function (n) { return opt(n, "mindestens " + n, w.nmin); }).join("") + "</select><select id='wNmax'>" + opt("", "höchstens: egal", w.nmax) +
+        [5, 7, 10, 14, 21].map(function (n) { return opt(n, "höchstens " + n, w.nmax); }).join("") + "</select></div></div>" +
+      "<div><span class='lab'>Budget pro Person</span><input id='wBudget' type='number' inputmode='numeric' min='0' step='100' placeholder='z. B. 1500' value='" + (w.budget || "") + "'></div>" +
+      "<div><span class='lab'>Kabine</span><select id='wKab'>" + opt("any", "egal – günstigste", w.kabine || "any") + opt("outside", "Außenkabine", w.kabine) + opt("balcony", "Balkonkabine", w.kabine) +
+        "</select><div class='hint'>Außen- und Balkonpreise gibt es bisher nur für Mein Schiff.</div></div>";
+    $("wishDel").hidden = !wish;
+    $("wishDlg").showModal();
+  }
+  $("wishCancel").addEventListener("click", function () { $("wishDlg").close(); });
+  $("wishDel").addEventListener("click", function () {
+    wish = null; store(false, "kr-wish", "null"); $("wishDlg").close(); renderWish(); render(false); toast("Wunschreise gelöscht");
+  });
+  $("wishSave").addEventListener("click", function () {
+    var num = function (id) { var v = parseInt($(id).value, 10); return isNaN(v) ? null : v; };
+    var w = {
+      regionen: [].map.call($("wishForm").querySelectorAll("input[name=reg]:checked"), function (x) { return x.value; }),
+      reederei: $("wBrand").value, von: $("wVon").value, bis: $("wBis").value,
+      nmin: num("wNmin"), nmax: num("wNmax"), budget: num("wBudget"), kabine: $("wKab").value
+    };
+    if (w.von && w.bis && w.von > w.bis) { var x = w.von; w.von = w.bis; w.bis = x; }
+    wish = w; store(false, "kr-wish", JSON.stringify(w));
+    $("wishDlg").close(); renderWish(); render(false);
+    $("wish-sec").scrollIntoView({ behavior: "smooth" });
+    toast("Wunschreise gespeichert");
+  });
+
+  /* ---------- Merkliste ---------- */
+  function renderMerk() {
+    var list = Object.keys(favs).map(function (c) { return BYCODE[c]; }).filter(Boolean)
+      .sort(function (a, b) { return a.f < b.f ? -1 : 1; });
+    $("merk-sec").hidden = !list.length;
+    $("merk").innerHTML = list.map(function (t) {
+      var p = t.cur != null ? t.cur : t.C.any;
+      return "<button type='button' class='merk-row' data-open='" + esc(t.c) + "'>" +
+        "<span class='t'>" + esc(t.h) + "</span>" +
+        "<span class='pr num'>" + eur(p) + (t.cur != null && t.delta ? deltaTag(t.delta) : "") + (t.record ? "<span class='tag low'>Tiefstpreis</span>" : "") + "</span>" +
+        "<span class='meta'>" + esc(t.b) + " · " + esc(t.s) + " · " + dShort(t.f) + " " + t.f.slice(0, 4) + " · " + t.n + " Nächte" +
+        (t.cur == null && cabin !== "any" ? " · kein " + CABIN_LABEL[cabin] + "-Preis" : "") + "</span></button>";
+    }).join("");
+  }
+  $("merk").addEventListener("click", function (e) {
+    var b = e.target.closest("[data-open]"); if (!b) return;
+    var t = BYCODE[b.getAttribute("data-open")];
+    if (t && t.cur == null) setCabin("any");
+    openTrip(t.c, false);
+  });
+  function shareLink() {
+    return location.origin + location.pathname + "#merkliste=" + Object.keys(favs).filter(function (c) { return BYCODE[c]; }).join(",");
+  }
+  $("shareBtn").addEventListener("click", function () {
+    var url = shareLink(), n = Object.keys(favs).filter(function (c) { return BYCODE[c]; }).length;
+    var data = { title: "Meine Kreuzfahrt-Merkliste", text: n + " Reisen aus dem Kreuzfahrt-Radar", url: url };
+    if (navigator.share) { navigator.share(data).catch(function () {}); return; }
+    if (navigator.clipboard) navigator.clipboard.writeText(url).then(function () { toast("Link kopiert – z. B. per WhatsApp oder Mail verschicken"); },
+      function () { prompt("Diesen Link kopieren:", url); });
+    else prompt("Diesen Link kopieren:", url);
+  });
+  // Merkliste aus einem geteilten Link übernehmen
+  (function () {
+    var m = /merkliste=([^&]*)/.exec(location.hash); if (!m) return;
+    var codes = decodeURIComponent(m[1]).split(",").filter(function (c) { return BYCODE[c]; });
+    history.replaceState(null, "", location.pathname + location.search);
+    if (!codes.length) { toast("Die Reisen aus dem Link werden nicht mehr angeboten."); return; }
+    var neu = codes.filter(function (c) { return !favs[c]; });
+    if (!neu.length) { toast("Alle Reisen aus dem Link sind schon auf deiner Merkliste."); return; }
+    $("importTxt").textContent = "Jemand hat dir " + codes.length + (codes.length === 1 ? " Reise" : " Reisen") + " geschickt" +
+      (neu.length < codes.length ? " (" + neu.length + " davon neu)" : "") + ":";
+    $("importList").innerHTML = codes.slice(0, 8).map(function (c) { var t = BYCODE[c]; return "<li>" + esc(t.h) + " – " + dShort(t.f) + " " + t.f.slice(0, 4) + "</li>"; }).join("") +
+      (codes.length > 8 ? "<li>… und " + (codes.length - 8) + " weitere</li>" : "");
+    $("importNo").onclick = function () { $("importDlg").close(); };
+    $("importYes").onclick = function () {
+      neu.forEach(function (c) { favs[c] = 1; }); saveFavs(); $("importDlg").close(); renderMerk(); render(true);
+      toast(neu.length + (neu.length === 1 ? " Reise" : " Reisen") + " zur Merkliste hinzugefügt");
+      $("merk-sec").scrollIntoView({ behavior: "smooth" });
+    };
+    $("importDlg").showModal();
+  })();
+
+  /* ---------- Kabinenwahl ---------- */
+  function setCabin(mode) {
+    if (mode === cabin) return;
+    applyCabin(mode); store(false, "kr-cabin", mode);
+    [].forEach.call($("cabinSeg").querySelectorAll("button"), function (b) { b.setAttribute("aria-pressed", b.getAttribute("data-v") === mode); });
+    $("cabinNote").textContent = mode === "any" ? "" : "Außen- und Balkonpreise gibt es bisher nur für Mein Schiff.";
+    renderSections(); render(false);
+  }
+  $("cabinSeg").addEventListener("click", function (e) { var b = e.target.closest("button"); if (b) setCabin(b.getAttribute("data-v")); });
+  function renderSections() { renderFacts(); renderDrops(); renderRegions(); renderLm(); renderCal(); renderMerk(); }
+
+  var savedCab = store(true, "kr-cabin");
+  if (savedCab && savedCab !== "any" && CABIN_LABEL.hasOwnProperty(savedCab)) setCabin(savedCab);
+  else renderSections();
+  renderWish();
   render(false);
 })();
 </script>

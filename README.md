@@ -52,6 +52,16 @@ Vorschau lokal: `python wochenbrief.py --vorschau`
 
 ## Einstellungen
 
-`einstellungen.json` enthält den Geburtstagsgruß oben im Dashboard (Titel, Text,
-Unterschrift, Zeitraum `ab`/`bis`). Vorschau außerhalb des Zeitraums: Dashboard-Link
-mit `?gruss` am Ende aufrufen.
+`einstellungen.json`:
+
+- `gruss` – Geburtstagsgruß oben im Dashboard (Titel, Text, Unterschrift, Zeitraum
+  `ab`/`bis`). Vorschau außerhalb des Zeitraums: Dashboard-Link mit `?gruss` aufrufen.
+- `merkliste` – Reisecodes (z. B. `"MSN2653SEE"`), die als Startmerkliste im Dashboard
+  erscheinen und im Wochenbrief ganz oben stehen. Die Codes stehen in einem geteilten
+  Merklisten-Link hinter `#merkliste=`.
+- `wunsch` – voreingestellte Wunschreise, z. B.
+  `{"regionen": ["Mittelmeer"], "von": "2027-04", "bis": "2027-06", "nmin": 7, "budget": 1500, "kabine": "balcony"}`
+  (`kabine`: `any`, `outside` oder `balcony`).
+
+Mein Schiff wird zusätzlich mit Kabinenfilter abgefragt (Außen, Balkon/Veranda);
+die Preise stehen in `price_pp_outside` und `price_pp_balcony`.
