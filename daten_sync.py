@@ -32,7 +32,8 @@ DB_PATH = SCRIPT_DIR / "preise.db"
 TRIP_COLS = ["trip_code", "brand", "headline", "ship", "date_from", "date_to", "nights",
              "region", "route_name", "ports", "detail_url", "first_seen", "last_seen"]
 PRICE_COLS = ["trip_code", "snapshot_date", "fetched_at", "price_pp", "price_pp_with_flight",
-              "cabin_type", "cabin_name", "tariff", "sold_out", "offers"]
+              "cabin_type", "cabin_name", "tariff", "sold_out", "offers",
+              "price_pp_outside", "price_pp_balcony"]
 
 
 def _none(v: str):
@@ -51,7 +52,7 @@ def import_csv(db_path: Path = DB_PATH) -> None:
         n_trips = len(rows)
     for path in sorted(PRICE_DIR.glob("*.csv")):
         with path.open(encoding="utf-8", newline="") as f:
-            rows = [{k: _none(v) for k, v in r.items()} for r in csv.DictReader(f)]
+            rows = [{c: _none(r.get(c) or "") for c in PRICE_COLS} for r in csv.DictReader(f)]
         con.executemany(
             f"INSERT OR REPLACE INTO prices ({', '.join(PRICE_COLS)}) "
             f"VALUES ({', '.join(':' + c for c in PRICE_COLS)})", rows)

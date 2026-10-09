@@ -194,7 +194,8 @@ class MeinSchiffClient:
         return r.text
 
     def load_more(self, search: dict, after: str, action_id: str) -> dict:
-        body = json.dumps([{**search, "after": after}], ensure_ascii=False)
+        payload = {**search, "after": after} if after else dict(search)
+        body = json.dumps([payload], ensure_ascii=False)
         r = self.session.post(
             BASE_URL + SEARCH_PATH,
             data=body.encode("utf-8"),
@@ -321,7 +322,58 @@ class MeinSchiffClient:
             seen.update(t["tripCode"] for t in new)
             cursor = resp.get("nextCursor")
             print(f"Seite {page}: {len(trips)} von {total} Reisen")
+        self._html = html
         return trips
+
+    def fetch_cabin_prices(self, cabin_types: list[str], search: dict | None = None) -> dict | None:
+        """Zweiter Durchgang mit Kabinenfilter: {tripCode: (preis_pp, preis_mit_flug)}.
+
+        Muss nach fetch_all() laufen (nutzt die dort gefundene Aktions-Kennung).
+        Gibt None zurück, wenn der Filter nicht greift oder der Abruf scheitert.
+        """
+        search = {**(search or default_search()), "cabins": cabin_types}
+        prices: dict[str, tuple] = {}
+        after, page = None, 0
+        while page < MAX_PAGES:
+            page += 1
+            time.sleep(PAUSE_SECONDS)
+            resp = self._load_with_retry(self._html, search, after) if after else self._try(self.action_id, search, None)
+            if resp is None:
+                print(f"  {'/'.join(cabin_types)}: Abbruch bei Seite {page}")
+                return prices or None
+            data = resp.get("data", [])
+            if page == 1:
+                types = {t.get("cabinType") for t in data}
+                if data and not types <= set(cabin_types):
+                    print(f"  WARNUNG: Kabinenfilter {cabin_types} wird ignoriert (erhalten: {types})")
+                    return None
+            new = [t for t in data if t["tripCode"] not in prices]
+            if not new:
+                break
+            for t in new:
+                prices[t["tripCode"]] = (t.get("lowestPrice"), t.get("lowestPriceWithFlight"))
+            after = resp.get("nextCursor")
+            if not after:
+                break
+        print(f"  {'/'.join(cabin_types)}: {len(prices)} Reisen mit Preis ({page} Seiten)")
+        return prices
+
+
+# Kabinen-Durchgänge: Spalte in der Datenbank -> Kabinentypen bei Mein Schiff
+CABIN_PASSES = {
+    "price_pp_outside": ["Outside"],
+    "price_pp_balcony": ["Balcony", "Veranda"],  # Veranda = Balkon auf den neueren Schiffen
+}
+
+
+def save_cabin_prices(con: sqlite3.Connection, column: str, prices: dict, snapshot: date | None = None) -> int:
+    day = (snapshot or date.today()).isoformat()
+    n = 0
+    for code, (pp, _pf) in prices.items():
+        n += con.execute(f"UPDATE prices SET {column} = ? WHERE trip_code = ? AND snapshot_date = ?",
+                         (pp, code, day)).rowcount
+    con.commit()
+    return n
 
 
 # --------------------------------------------------------------------------
@@ -402,9 +454,11 @@ def open_db(path: Path) -> sqlite3.Connection:
     if "brand" not in cols:
         con.execute("ALTER TABLE trips ADD COLUMN brand TEXT NOT NULL DEFAULT 'Mein Schiff'")
         con.commit()
-    if "offers" not in {r[1] for r in con.execute("PRAGMA table_info(prices)")}:
-        con.execute("ALTER TABLE prices ADD COLUMN offers TEXT")  # Aktionen, z. B. "Frühbucher"
-        con.commit()
+    price_cols = {r[1] for r in con.execute("PRAGMA table_info(prices)")}
+    for col, typ in (("offers", "TEXT"), ("price_pp_outside", "INTEGER"), ("price_pp_balcony", "INTEGER")):
+        if col not in price_cols:
+            con.execute(f"ALTER TABLE prices ADD COLUMN {col} {typ}")
+            con.commit()
     repair_text(con)
     return con
 
@@ -462,6 +516,7 @@ def save_trips(con: sqlite3.Connection, items: list[dict], snapshot: date | None
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description="Mein Schiff Preis-Tracker")
     ap.add_argument("--db", default=str(SCRIPT_DIR / "preise.db"), help="Pfad zur SQLite-Datenbank")
+    ap.add_argument("--ohne-kabinen", action="store_true", help="keine Balkon-/Außenkabinen-Preise laden")
     ap.add_argument("--offline", nargs="+", metavar="DATEI",
                     help="Gespeicherte Suchseite (.html) und/oder Aktions-Antworten einlesen")
     args = ap.parse_args(argv)
@@ -483,6 +538,13 @@ def main(argv: list[str] | None = None) -> int:
 
     n = save_trips(con, items)
     print(f"{n} Reisen mit Preisen für {date.today().isoformat()} gespeichert in {args.db}")
+
+    if not args.offline and not args.ohne_kabinen and client.action_id:
+        print("Kabinenpreise:")
+        for column, types in CABIN_PASSES.items():
+            prices = client.fetch_cabin_prices(types)
+            if prices:
+                print(f"  -> {save_cabin_prices(con, column, prices)} Preise gespeichert ({column})")
     if not args.offline and client.incomplete:
         return 2  # unvollständig, z. B. für die Aufgabenplanung erkennbar
     return 0
