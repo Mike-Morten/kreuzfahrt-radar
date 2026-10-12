@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import shutil
 import sys
 from datetime import date
@@ -42,7 +43,7 @@ REGIONS = {
         "LI": "Westeuropa & Atlantik", "FU": "Westeuropa & Atlantik",
         "IO": "Afrika & Indischer Ozean", "AF": "Afrika & Indischer Ozean",
         "CP": "Afrika & Indischer Ozean", "PL": "Afrika & Indischer Ozean",
-        "AS": "Asien", "YO": "Asien",
+        "AS": "Asien", "YO": "Asien", "SI": "Asien",
         "US": "Nordamerika", "NY": "Nordamerika",
         "LR": "Transreisen", "BG": "Transreisen", "WC": "Transreisen", "MI": "Transreisen",
         "SA": "Südamerika",
@@ -84,7 +85,7 @@ def build_data(con, today: date) -> dict:
             url = AIDA_LINK.format(code=code)
         trips[code] = {
             "c": code, "b": brand, "h": title, "s": ship, "f": d_from, "t": d_to,
-            "n": nights, "r": reg, "p": ports or "", "u": url,
+            "n": nights, "r": reg, "p": ports or "", "u": url, "_rc": region,
             "pp": [None] * len(days), "pf": [None] * len(days),
             "po": [None] * len(days), "pb": [None] * len(days),
             "o": None, "k": None, "so": 0,
@@ -141,6 +142,12 @@ def build_data(con, today: date) -> dict:
             del t["so"]
 
     present = {t["r"] for t in current}
+    unknown = sorted({f"{t['b']}:{t.pop('_rc', '')}" for t in current if t["r"] == "Sonstige"})
+    if unknown:
+        msg = "Unbekannte Regionscodes (bitte in REGIONS ergänzen): " + ", ".join(unknown)
+        print(f"::warning::{msg}" if os.environ.get("GITHUB_ACTIONS") else msg)
+    for t in current:
+        t.pop("_rc", None)
     settings = {}
     if SETTINGS.exists():
         settings = json.loads(SETTINGS.read_text(encoding="utf-8"))
