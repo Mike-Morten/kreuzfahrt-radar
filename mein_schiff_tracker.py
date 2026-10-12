@@ -376,15 +376,17 @@ class MeinSchiffClient:
         """
         search = {**(search or default_search()), "cabins": cabin_types}
         prices: dict[str, tuple] = {}
-        after, page = None, 0
+        after, page, total, retried = None, 0, 0, False
         while page < MAX_PAGES:
             page += 1
             time.sleep(PAUSE_SECONDS)
             resp = self._load_with_retry(self._html, search, after) if after else self._try(self.action_id, search, None)
             if resp is None:
-                print(f"  {'/'.join(cabin_types)}: Abbruch bei Seite {page}")
+                gh_warning(f"Mein Schiff {'/'.join(cabin_types)}: Abbruch bei Seite {page}, "
+                           f"{len(prices)} von {total or '?'} Reisen")
                 return prices or None
             data = resp.get("data", [])
+            total = total or resp.get("total") or 0
             if page == 1:
                 types = {t.get("cabinType") for t in data}
                 if data and not types <= set(cabin_types):
@@ -392,13 +394,22 @@ class MeinSchiffClient:
                     return None
             new = [t for t in data if t["tripCode"] not in prices]
             if not new:
+                if after and total and len(prices) < COMPLETE_SHARE * total and not retried:
+                    retried = True          # einmal kurz warten und dieselbe Seite erneut holen
+                    time.sleep(10)
+                    page -= 1
+                    continue
                 break
             for t in new:
                 prices[t["tripCode"]] = (t.get("lowestPrice"), t.get("lowestPriceWithFlight"))
             after = resp.get("nextCursor")
             if not after:
                 break
-        print(f"  {'/'.join(cabin_types)}: {len(prices)} Reisen mit Preis ({page} Seiten)")
+        msg = f"Mein Schiff {'/'.join(cabin_types)}: {len(prices)} von {total} Reisen ({page} Seiten)"
+        if total and len(prices) < COMPLETE_SHARE * total:
+            gh_warning(msg + " – unvollständig")
+        else:
+            gh_notice(msg)
         return prices
 
 
