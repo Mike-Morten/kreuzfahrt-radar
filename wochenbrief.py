@@ -69,14 +69,34 @@ def title_of(headline: str) -> str:
 # Auswertung
 # --------------------------------------------------------------------------
 
+JUMP = 0.25   # ab 25 % gilt eine Änderung als großer Sprung
+
+
+def jump_flag(t: dict, ref: str | None, last: str) -> str | None:
+    """Erkennt Preisänderungen, die vermutlich kein echter Rabatt sind (wie im Dashboard)."""
+    if not ref or t["before"] is None or t["now"] == t["before"]:
+        return None
+    rel = abs(t["now"] - t["before"]) / t["before"]
+    ka, kb = t["cab"].get(ref), t["cab"].get(last)
+    if rel >= 0.05 and ka and kb and ka[0] != kb[0]:
+        return f"Kabinenwechsel ({ka[1]} → {kb[1]})"
+    if rel < JUMP:
+        return None
+    days_left = (date.fromisoformat(t["date_from"]) - date.fromisoformat(last)).days
+    if days_left <= 21:
+        return f"kurz vor Abfahrt (in {days_left} Tagen)"
+    vals = [v for _, v in sorted(t["hist"].items()) if v is not None]
+    big = sum(1 for a, b in zip(vals, vals[1:]) if abs(b - a) / a >= JUMP)
+    if big >= 2:
+        return "Preis springt häufig"
+    return None
+
+
 def analyse(con, today: date | None = None) -> dict:
     days = [r[0] for r in con.execute("SELECT DISTINCT snapshot_date FROM prices ORDER BY 1")]
     if not days:
         raise SystemExit("Keine Preisdaten vorhanden.")
     last = days[-1]
-    week_start = (date.fromisoformat(last) - timedelta(days=7)).isoformat()
-    ref_days = [d for d in days if week_start <= d < last]
-    ref = ref_days[0] if ref_days else None
 
     today = today or date.fromisoformat(last)
     trips = {}
@@ -86,29 +106,49 @@ def analyse(con, today: date | None = None) -> dict:
         code, brand, headline, ship, d_from, nights, region, url = row
         trips[code] = dict(code=code, brand=brand, title=title_of(headline or ""), ship=ship,
                            date_from=d_from, nights=nights, url=url,
-                           region=region_of(brand, region), hist={})
+                           region=region_of(brand, region), hist={}, cab={})
 
-    for code, day, pp, pf in con.execute(
-            "SELECT trip_code, snapshot_date, price_pp, price_pp_with_flight FROM prices"):
+    brand_last: dict[str, str] = {}
+    for code, day, pp, pf, ctype, cname, tariff in con.execute(
+            "SELECT trip_code, snapshot_date, price_pp, price_pp_with_flight, cabin_type, cabin_name, tariff "
+            "FROM prices"):
         t = trips.get(code)
-        if t is not None:
+        if t is not None and (pp is not None or pf is not None):
             t["hist"][day] = pp if pp is not None else pf
-            if day == last:
-                t["flight_only"] = pp is None
+            t["flight_only_" + day] = pp is None
+            key = ctype if t["brand"] == "Mein Schiff" else tariff
+            t["cab"][day] = (key or "", cname or tariff or "")
+            brand_last[t["brand"]] = max(brand_last.get(t["brand"], ""), day)
 
-    current = [t for t in trips.values() if t["hist"].get(last) is not None]
-    for t in current:
-        t["now"] = t["hist"][last]
-        t["before"] = t["hist"].get(ref) if ref else None
-        older = [v for d, v in t["hist"].items() if d < last and v is not None]
+    # Vergleich je Reederei mit ihrem letzten Sammeltag (falls eine Reederei einen Tag ausfiel)
+    def ref_for(b_last: str) -> str | None:
+        start = (date.fromisoformat(b_last) - timedelta(days=7)).isoformat()
+        cands = [d for d in days if start <= d < b_last]
+        return cands[0] if cands else None
+
+    current = []
+    for t in trips.values():
+        b_last = brand_last.get(t["brand"])
+        if not b_last or b_last not in t["hist"]:
+            continue
+        r = ref_for(b_last)
+        t["now"] = t["hist"][b_last]
+        t["flight_only"] = t.get("flight_only_" + b_last, False)
+        t["before"] = t["hist"].get(r) if r else None
+        older = [v for d, v in t["hist"].items() if d < b_last]
         t["prev_min"] = min(older) if older else None
         t["delta"] = (t["now"] - t["before"]) if t["before"] is not None else 0
+        t["flag"] = jump_flag(t, r, b_last)
+        current.append(t)
+    ref = ref_for(last)
+    clean = [t for t in current if not t["flag"]]
+    n_flagged = sum(1 for t in current if t["flag"] and t["delta"] < 0)
 
     # Nach prozentualer Senkung sortieren, sonst dominieren teure Weltreisen
-    drops = sorted((t for t in current if t["delta"] <= -MIN_DROP_EUR),
+    drops = sorted((t for t in clean if t["delta"] <= -MIN_DROP_EUR),
                    key=lambda t: t["delta"] / t["before"])[:TOP_N]
     drop_codes = {t["code"] for t in drops}
-    records = sorted((t for t in current
+    records = sorted((t for t in clean
                       if t["prev_min"] is not None and t["now"] < t["prev_min"]
                       and t["code"] not in drop_codes),
                      key=lambda t: (t["now"] - t["prev_min"]) / t["prev_min"])[:TOP_N]
@@ -125,9 +165,10 @@ def analyse(con, today: date | None = None) -> dict:
     by_code = {t["code"]: t for t in current}
     merk = sorted((by_code[c] for c in merk_codes if c in by_code), key=lambda t: t["date_from"])
 
-    n_down = sum(1 for t in current if t["delta"] < 0)
-    n_up = sum(1 for t in current if t["delta"] > 0)
+    n_down = sum(1 for t in clean if t["delta"] < 0)
+    n_up = sum(1 for t in clean if t["delta"] > 0)
     return dict(last=last, ref=ref, days=len(days), drops=drops, records=records, best=best, merk=merk,
+                n_flagged=n_flagged,
                 n_current=len(current), n_down=n_down, n_up=n_up)
 
 
@@ -172,7 +213,7 @@ def build_mail(a: dict, anrede: str) -> tuple[str, str, str]:
     e = html.escape
     since = d_short(a["ref"]) if a["ref"] else None
 
-    merk_down = [t for t in a.get("merk", []) if t["delta"] < 0]
+    merk_down = [t for t in a.get("merk", []) if t["delta"] < 0 and not t["flag"]]
     if merk_down:
         t = min(merk_down, key=lambda t: t["delta"])
         betreff = f"Kreuzfahrt-Radar: Deine gemerkte Reise „{t['title']}“ ist {eur(-t['delta'])} günstiger"
@@ -189,12 +230,15 @@ def build_mail(a: dict, anrede: str) -> tuple[str, str, str]:
     if a.get("merk"):
         def merk_extra(t):
             x = ""
-            if t["delta"]:
+            if t["flag"]:
+                x += (f'<div style="font-size:12px;font-weight:400;color:{INK2};margin-top:4px">'
+                      f'⚠ Preisänderung {eur(abs(t["delta"]))}: {html.escape(t["flag"])} – vermutlich kein echter Rabatt</div>')
+            elif t["delta"]:
                 down = t["delta"] < 0
                 x += (f'<span style="display:inline-block;margin-left:8px;font-size:13px;font-weight:700;'
                       f'color:{DOWN if down else "#b02a2a"};background:{DOWN_BG if down else "#fbe7e5"};border-radius:99px;padding:2px 8px">'
                       f'{"▼" if down else "▲"} {eur(abs(t["delta"]))}</span>')
-            if t["prev_min"] is not None and t["now"] < t["prev_min"]:
+            if not t["flag"] and t["prev_min"] is not None and t["now"] < t["prev_min"]:
                 x += (f'<span style="display:inline-block;margin-left:8px;font-size:13px;font-weight:700;color:#3a2a00;'
                       f'background:{SAND};border-radius:6px;padding:2px 8px">Tiefstpreis</span>')
             return x
@@ -232,6 +276,9 @@ def build_mail(a: dict, anrede: str) -> tuple[str, str, str]:
     stats = f"{a['n_current']:,}".replace(",", ".") + " Abfahrten beobachtet"
     if a["ref"]:
         stats += f" · {a['n_down']} günstiger, {a['n_up']} teurer als am {since}"
+    if a.get("n_flagged"):
+        stats += (f" · {a['n_flagged']} auffällige Preissprünge (z. B. Kabinenwechsel oder kurz vor Abfahrt) "
+                  "wurden nicht als Rabatt gezählt")
 
     html_body = f"""<!doctype html>
 <html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
@@ -258,7 +305,8 @@ def build_mail(a: dict, anrede: str) -> tuple[str, str, str]:
     if a.get("merk"):
         lines += ["Deine Merkliste:"] + [
             f"- {t['title']} ({t['brand']}, ab {d_short(t['date_from'])}): {eur(t['now'])}"
-            + (f" ({'−' if t['delta'] < 0 else '+'}{eur(abs(t['delta']))})" if t["delta"] else "") for t in a["merk"]] + [""]
+            + (f" ({'−' if t['delta'] < 0 else '+'}{eur(abs(t['delta']))}"
+               + (f", ⚠ {t['flag']}" if t["flag"] else "") + ")" if t["delta"] else "") for t in a["merk"]] + [""]
     if a["drops"]:
         lines += [f"Diese Woche günstiger geworden (Vergleich mit dem {since}):"]
         lines += [f"- {t['title']} ({t['brand']}, ab {d_short(t['date_from'])}, {t['nights']} N.): "

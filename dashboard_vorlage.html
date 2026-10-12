@@ -123,6 +123,8 @@ section { margin: 34px 0; }
 .delta { display: inline-flex; align-items: center; gap: 4px; font-weight: 700; font-size: 14px; border-radius: 999px; padding: 2px 9px; white-space: nowrap; }
 .delta.down { color: var(--down); background: var(--down-bg); }
 .delta.up { color: var(--up); background: var(--up-bg); }
+.delta.flag { color: var(--ink-2); background: var(--surface-2); }
+.flag-note { font-size: 14px; color: var(--ink-2); background: var(--surface-2); border-radius: 10px; padding: 10px 12px; }
 .tag { display: inline-block; font-size: 13px; font-weight: 600; padding: 2px 8px; border-radius: 6px; background: var(--surface-2); color: var(--ink-2); }
 .tag.low { background: var(--sand); color: #3a2a00; }
 
@@ -551,6 +553,37 @@ footer { color: var(--muted); font-size: 14px; padding: 20px 0 40px; border-top:
     t.hay = (t.h + " " + t.s + " " + t.p + " " + t.r + " " + t.b).toLowerCase();
     t.g = t.b + "|" + t.n + "|" + t.h;
   });
+  /* ---------- Auffällige Preissprünge erkennen ---------- */
+  // Liefert null oder einen Hinweistext, warum die Änderung kein echter Rabatt sein dürfte.
+  var JUMP = 0.25;            // ab 25 % gilt eine Änderung als großer Sprung
+  function cabinAt(t, i) {    // günstigste Kabine/Tarif am Tag i (relativ zu d0)
+    if (!t.kc) return null;
+    var r = null;
+    for (var k = 0; k < t.kc.length; k++) if (t.kc[k][0] <= i) r = t.kc[k]; else break;
+    return r;
+  }
+  function jumpFlag(t, s, pi, mode) {
+    var n = s.length;
+    if (pi == null || s[pi] == null || s[n - 1] == null || s[n - 1] === s[pi]) return null;
+    var rel = Math.abs(s[n - 1] - s[pi]) / s[pi];
+    if (mode === "any" && rel >= 0.05) {
+      var a = cabinAt(t, pi), b = cabinAt(t, n - 1);
+      if (a && b && a[1] !== b[1])
+        return "Kabinenwechsel: Am " + dShort(DAYS[t.d0 + pi]) + " galt der günstigste Preis für „" + a[2] +
+          "“, jetzt für „" + b[2] + "“. Die Änderung kommt also von einer anderen Kabine – vermutlich kein echter Rabatt.";
+    }
+    if (rel < JUMP) return null;
+    var daysLeft = Math.round((pd(t.f) - pd(DAYS[t.d0 + n - 1])) / 864e5);
+    if (daysLeft <= 21)
+      return "Kurz vor Abfahrt (in " + daysLeft + " Tagen): Hier ändern sich die Preise oft sprunghaft, weil einzelne Kabinen frei werden oder ausgebucht sind.";
+    var big = 0, last = null;
+    s.forEach(function (v) { if (v == null) return; if (last != null && Math.abs(v - last) / last >= JUMP) big++; last = v; });
+    if (big >= 2)
+      return "Der Preis dieser Reise springt immer wieder stark hin und her – vermutlich wechselt die Verfügbarkeit einzelner Kabinen.";
+    return null;
+  }
+  var showFlagged = false;
+
   // Preisreihe & Kennzahlen für die gewählte Kabine berechnen
   var CABIN_LABEL = { any: "", outside: "Außenkabine", balcony: "Balkonkabine" };
   var cabin = "any";
@@ -568,16 +601,16 @@ footer { color: var(--muted); font-size: 14px; padding: 20px 0 40px; border-top:
       t.series = s || [];
       var n = t.series.length;
       t.cur = n ? s[n - 1] : null;
-      var prev = null, i;
+      var prev = null, i, pi = null;
       t.prevDay = null; t.prevFallback = false;
       if (cmpDays === 1) {
-        for (i = n - 2; i >= 0; i--) if (s[i] != null) { prev = s[i]; t.prevDay = DAYS[t.d0 + i]; break; }
+        for (i = n - 2; i >= 0; i--) if (s[i] != null) { prev = s[i]; pi = i; t.prevDay = DAYS[t.d0 + i]; break; }
       } else if (n > 1) {
         // letzter Stand, der mindestens cmpDays vor dem aktuellen liegt
         var target = isoMinus(DAYS[t.d0 + n - 1], cmpDays);
-        for (i = n - 2; i >= 0; i--) if (s[i] != null && DAYS[t.d0 + i] <= target) { prev = s[i]; t.prevDay = DAYS[t.d0 + i]; break; }
+        for (i = n - 2; i >= 0; i--) if (s[i] != null && DAYS[t.d0 + i] <= target) { prev = s[i]; pi = i; t.prevDay = DAYS[t.d0 + i]; break; }
         if (prev == null) {   // noch nicht so viele Daten: ältester vorhandener Stand
-          for (i = 0; i < n - 1; i++) if (s[i] != null) { prev = s[i]; t.prevDay = DAYS[t.d0 + i]; t.prevFallback = true; break; }
+          for (i = 0; i < n - 1; i++) if (s[i] != null) { prev = s[i]; pi = i; t.prevDay = DAYS[t.d0 + i]; t.prevFallback = true; break; }
         }
       }
       t.prev = prev;
@@ -585,7 +618,8 @@ footer { color: var(--muted); font-size: 14px; padding: 20px 0 40px; border-top:
       var vals = t.series.filter(function (v) { return v != null; });
       t.min = vals.length ? Math.min.apply(null, vals) : null;
       t.max = vals.length ? Math.max.apply(null, vals) : null;
-      t.record = t.cur != null && vals.length > 1 && t.cur === t.min && t.max > t.min;   // neuer Tiefstpreis
+      t.flag = jumpFlag(t, s, pi, mode);
+      t.record = !t.flag && t.cur != null && vals.length > 1 && t.cur === t.min && t.max > t.min;   // neuer Tiefstpreis
       t.perNight = t.cur != null && t.n ? t.cur / t.n : null;
     });
   }
@@ -622,15 +656,17 @@ footer { color: var(--muted); font-size: 14px; padding: 20px 0 40px; border-top:
 
   /* ---------- Preissenkungen ---------- */
   function brandTag(t) { return "<span class='brand " + (t.b === "AIDA" ? "aida" : "ms") + "'>" + esc(t.b) + "</span>"; }
-  function deltaTag(d) {
+  function deltaTag(d, flag) {
     if (!d) return "";
+    if (flag) return "<span class='delta flag' title='" + esc(flag) + "'>⚠ " + (d < 0 ? "▼ " + eur(-d) : "▲ " + eur(d)) + "</span>";
     return d < 0
       ? "<span class='delta down' title='günstiger " + CMP_TEXT[cmpDays] + "'>▼ " + eur(-d) + "</span>"
       : "<span class='delta up' title='teurer " + CMP_TEXT[cmpDays] + "'>▲ " + eur(d) + "</span>";
   }
   var dropsEl = document.getElementById("drops");
   function renderDrops() {
-  var drops = D.trips.filter(function (t) { return t.delta < 0; })
+  var flaggedDrops = D.trips.filter(function (t) { return t.delta < 0 && t.flag; }).length;
+  var drops = D.trips.filter(function (t) { return t.delta < 0 && (showFlagged || !t.flag); })
     .sort(function (a, b) { return a.delta / a.prev - b.delta / b.prev; }).slice(0, 6);
   // Untertitel: mit welchem Tag wird verglichen?
   var refDays = {}, fallback = false;
@@ -641,6 +677,14 @@ footer { color: var(--muted); font-size: 14px; padding: 20px 0 40px; border-top:
   sub.textContent = !ref ? "" : fallback
     ? "Für einen Vergleich mit " + wanted + " gibt es noch nicht genug Daten – verglichen wird mit dem ältesten Stand vom " + dShort(ref)
     : "Preise im Vergleich zum " + dShort(ref);
+  if (flaggedDrops) {
+    var more = document.createElement("span");
+    more.innerHTML = " · " + flaggedDrops + " auffällige " + (flaggedDrops === 1 ? "Sprung" : "Sprünge") +
+      " (z. B. Kabinenwechsel) " + (showFlagged ? "eingeblendet – " : "ausgeblendet – ") +
+      "<button class='linkbtn' type='button' id='flagToggle'>" + (showFlagged ? "ausblenden" : "anzeigen") + "</button>";
+    sub.appendChild(more);
+    $("flagToggle").onclick = function () { showFlagged = !showFlagged; renderDrops(); };
+  }
   if (LAST < 1) {
     sub.textContent = "";
     dropsEl.innerHTML = "<div class='card empty'>Die Preise werden seit dem " + dLong(DAYS[0]) +
@@ -650,7 +694,7 @@ footer { color: var(--muted); font-size: 14px; padding: 20px 0 40px; border-top:
   } else {
     dropsEl.innerHTML = "<div class='grid'>" + drops.map(function (t) {
       return "<button type='button' class='card drop' data-open='" + esc(t.c) + "'>" +
-        "<span class='row'>" + brandTag(t) + deltaTag(t.delta) + "</span>" +
+        "<span class='row'>" + brandTag(t) + deltaTag(t.delta, t.flag) + "</span>" +
         "<span class='t'>" + esc(t.h) + "</span>" +
         "<span class='meta'>" + esc(t.s) + " · " + dShort(t.f) + " · " + t.n + " Nächte</span>" +
         "<span class='row'><span><span class='price num'>" + eur(t.cur) + "</span><span class='was num'>" + eur(t.prev) + "</span></span>" +
@@ -714,7 +758,7 @@ footer { color: var(--muted); font-size: 14px; padding: 20px 0 40px; border-top:
       price: function (t) { return t.cur == null ? 1e9 : t.cur; },
       night: function (t) { return t.perNight == null ? 1e9 : t.perNight; },
       date: function (t) { return t.f; },
-      drop: function (t) { return t.delta; }
+      drop: function (t) { return t.flag ? 0 : t.delta; }
     }[s];
     res.sort(function (a, b) {
       var x = key(a), y = key(b);
@@ -726,7 +770,7 @@ footer { color: var(--muted); font-size: 14px; padding: 20px 0 40px; border-top:
   function tripHtml(t) {
     var badges = [];
     if (t.record) badges.push("<span class='tag low'>Tiefstpreis seit Beobachtung</span>");
-    if (t.delta) badges.push(deltaTag(t.delta));
+    if (t.delta) badges.push(deltaTag(t.delta, t.flag));
     if (t.isNew) badges.push("<span class='tag'>Neu im Programm</span>");
     if (t.flightOnly) badges.push("<span class='tag'>nur mit Flug</span>");
     offers(t).slice(0, 2).forEach(function (o) { badges.push("<span class='tag'>" + esc(o) + "</span>"); });
@@ -767,6 +811,7 @@ footer { color: var(--muted); font-size: 14px; padding: 20px 0 40px; border-top:
       "<div class='chart-box'><h4>Preisverlauf pro Person" + (cabin !== "any" ? " – " + CABIN_LABEL[cabin] : t.flightOnly ? " (inkl. Flug)" : "") + "</h4>" +
       "<div class='chart' data-chart='" + esc(t.c) + "'></div>" +
       (seen < 2 ? "<p class='chart-note'>Der Verlauf füllt sich mit jedem Sammeltag.</p>" : "") + "</div>" +
+      (t.flag ? "<p class='flag-note'>⚠ " + esc(t.flag) + "</p>" : "") +
       "<dl>" + rows.map(function (r) { return "<dt>" + r[0] + "</dt><dd>" + r[1] + "</dd>"; }).join("") + "</dl>" +
       siblingsHtml(t) +
       (t.u ? "<div><a class='btn' href='" + esc(t.u) + "' target='_blank' rel='noopener'>Reise bei " + esc(t.b) + " ansehen ↗</a></div>" : "") +
@@ -1174,7 +1219,7 @@ footer { color: var(--muted); font-size: 14px; padding: 20px 0 40px; border-top:
       var p = t.cur != null ? t.cur : t.C.any;
       return "<button type='button' class='merk-row' data-open='" + esc(t.c) + "'>" +
         "<span class='t'>" + esc(t.h) + "</span>" +
-        "<span class='pr num'>" + eur(p) + (t.cur != null && t.delta ? deltaTag(t.delta) : "") + (t.record ? "<span class='tag low'>Tiefstpreis</span>" : "") + "</span>" +
+        "<span class='pr num'>" + eur(p) + (t.cur != null && t.delta ? deltaTag(t.delta, t.flag) : "") + (t.record ? "<span class='tag low'>Tiefstpreis</span>" : "") + "</span>" +
         "<span class='meta'>" + esc(t.b) + " · " + esc(t.s) + " · " + dShort(t.f) + " " + t.f.slice(0, 4) + " · " + t.n + " Nächte" +
         (t.cur == null && cabin !== "any" ? " · kein " + CABIN_LABEL[cabin] + "-Preis" : "") + "</span></button>";
     }).join("");

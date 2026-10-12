@@ -65,3 +65,13 @@ Vorschau lokal: `python wochenbrief.py --vorschau`
 
 Mein Schiff wird zusätzlich mit Kabinenfilter abgefragt (Außen, Balkon/Veranda);
 die Preise stehen in `price_pp_outside` und `price_pp_balcony`.
+
+## Auffällige Preissprünge
+
+Dashboard und Wochenbrief markieren Preisänderungen mit ⚠ und zählen sie nicht als
+Rabatt bzw. Tiefstpreis, wenn
+- die günstigste Kabine (Mein Schiff) bzw. der Tarif (AIDA) zwischen den verglichenen
+  Tagen gewechselt hat (Änderung ab 5 %),
+- die Änderung mindestens 25 % beträgt und die Reise in höchstens 21 Tagen ablegt, oder
+- der Preis der Reise schon mindestens zweimal um 25 % oder mehr gesprungen ist.
+Im Dashboard lassen sie sich unter „Günstiger geworden“ einblenden.

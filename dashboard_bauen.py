@@ -55,6 +55,10 @@ REGION_ORDER = [
     "Afrika & Indischer Ozean", "Asien", "Transreisen", "Sonstige",
 ]
 
+TARIFF_NAMES = {"IND": "Tarif PREMIUM", "INDAI": "Tarif PREMIUM ALL IN", "CLA": "Tarif CLASSIC",
+                "CLAAI": "Tarif CLASSIC ALL IN", "COMAI": "Tarif COMFORT ALL IN", "LIG": "Tarif LIGHT",
+                "PAU": "Pauschaltarif", "SEL": "AIDAselection", "SPE": "AIDAspecials"}
+
 AIDA_LINK = "https://aida.de/finden/{code}/PREMIUM?pax[adults]=2&pax[juveniles]=0&pax[children]=0&pax[babies]=0"
 
 
@@ -88,12 +92,14 @@ def build_data(con, today: date) -> dict:
             "n": nights, "r": reg, "p": ports or "", "u": url, "_rc": region,
             "pp": [None] * len(days), "pf": [None] * len(days),
             "po": [None] * len(days), "pb": [None] * len(days),
+            "kc": [None] * len(days),   # günstigste Kabine (Mein Schiff) bzw. Tarif (AIDA) je Tag
             "o": None, "k": None, "so": 0,
         }
 
-    for code, day, pp, pf, offers, cabin, sold_out, po, pb in con.execute(
+    for code, day, pp, pf, offers, cabin, sold_out, po, pb, cname, tariff in con.execute(
             "SELECT trip_code, snapshot_date, price_pp, price_pp_with_flight, offers, "
-            "cabin_type, sold_out, price_pp_outside, price_pp_balcony FROM prices ORDER BY snapshot_date"):
+            "cabin_type, sold_out, price_pp_outside, price_pp_balcony, cabin_name, tariff "
+            "FROM prices ORDER BY snapshot_date"):
         t = trips.get(code)
         if t is None:
             continue
@@ -102,6 +108,10 @@ def build_data(con, today: date) -> dict:
         t["pf"][i] = pf
         t["po"][i] = po
         t["pb"][i] = pb
+        if pp is not None or pf is not None:
+            key = cabin if t["b"] == "Mein Schiff" else (tariff or "")
+            label = cname or TARIFF_NAMES.get(tariff or "", tariff or "")
+            t["kc"][i] = (key or "", label or "")
         if pp is not None or pf is not None:  # Angaben vom neuesten Tag mit Preis
             t["o"], t["k"], t["so"] = offers, cabin, sold_out or 0
 
@@ -119,7 +129,7 @@ def build_data(con, today: date) -> dict:
     for t in trips.values():
         last = brand_last.get(t["b"], -1)
         if last >= 0 and has_price(t, last):
-            for key in ("pp", "pf", "po", "pb"):
+            for key in ("pp", "pf", "po", "pb", "kc"):
                 t[key] = t[key][:last + 1]
             current.append(t)
 
@@ -129,6 +139,16 @@ def build_data(con, today: date) -> dict:
                      if t["pp"][i] is not None or t["pf"][i] is not None)
         t["d0"] = first
         t["pp"] = t["pp"][first:]
+        # Kabine/Tarif nur bei Wechsel speichern: [[Tagesindex, Schlüssel, Bezeichnung], ...]
+        kc, prev = [], None
+        for i, v in enumerate(t["kc"][first:]):
+            if v is not None and v != prev:
+                kc.append([i, v[0], v[1]])
+                prev = v
+        if len(kc) > 1:
+            t["kc"] = kc
+        else:
+            del t["kc"]
         for key in ("pf", "po", "pb"):
             t[key] = t[key][first:]
             if all(v is None for v in t[key]):
