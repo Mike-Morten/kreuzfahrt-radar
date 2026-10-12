@@ -926,7 +926,7 @@ footer { color: var(--muted); font-size: 14px; padding: 20px 0 40px; border-top:
     var now = new Date(), iso = now.getFullYear() + "-" + String(now.getMonth() + 1).padStart(2, "0") + "-" + String(now.getDate()).padStart(2, "0");
     var show = /[?&]gruss\b/.test(location.search) || ((!g.ab || iso >= g.ab) && (!g.bis || iso <= g.bis));
     if (!show) return;
-    $("gruss").innerHTML = "<section class='gruss' aria-label='Gruß'><div class='icon' aria-hidden='true'>🎂</div>" +
+    $("gruss").innerHTML = "<section class='gruss' aria-label='Gruß'><div class='icon' aria-hidden='true'>" + (g.icon || (/weihnacht/i.test(g.titel) ? "🎄" : "🎁")) + "</div>" +
       "<h2>" + esc(g.titel) + "</h2><p>" + esc(g.text) + "</p>" + (g.unterschrift ? "<p class='sig'>" + esc(g.unterschrift) + "</p>" : "") + "</section>";
   })();
 
