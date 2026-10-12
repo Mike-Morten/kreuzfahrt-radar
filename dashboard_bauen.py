@@ -92,7 +92,7 @@ def build_data(con, today: date) -> dict:
 
     for code, day, pp, pf, offers, cabin, sold_out, po, pb in con.execute(
             "SELECT trip_code, snapshot_date, price_pp, price_pp_with_flight, offers, "
-            "cabin_type, sold_out, price_pp_outside, price_pp_balcony FROM prices"):
+            "cabin_type, sold_out, price_pp_outside, price_pp_balcony FROM prices ORDER BY snapshot_date"):
         t = trips.get(code)
         if t is None:
             continue
@@ -101,13 +101,26 @@ def build_data(con, today: date) -> dict:
         t["pf"][i] = pf
         t["po"][i] = po
         t["pb"][i] = pb
-        if i == len(days) - 1:  # Angaben vom neuesten Tag
+        if pp is not None or pf is not None:  # Angaben vom neuesten Tag mit Preis
             t["o"], t["k"], t["so"] = offers, cabin, sold_out or 0
 
-    # Nur Reisen, die am letzten Sammeltag noch angeboten wurden
-    last = len(days) - 1
-    current = [t for t in trips.values()
-               if last >= 0 and (t["pp"][last] is not None or t["pf"][last] is not None)]
+    # Letzter Sammeltag je Reederei (fällt eine Reederei einen Tag aus,
+    # bleiben ihre Reisen mit dem letzten bekannten Stand sichtbar)
+    def has_price(t, i):
+        return t["pp"][i] is not None or t["pf"][i] is not None
+    brand_last = {}
+    for t in trips.values():
+        for i in range(len(days) - 1, -1, -1):
+            if has_price(t, i):
+                brand_last[t["b"]] = max(brand_last.get(t["b"], -1), i)
+                break
+    current = []
+    for t in trips.values():
+        last = brand_last.get(t["b"], -1)
+        if last >= 0 and has_price(t, last):
+            for key in ("pp", "pf", "po", "pb"):
+                t[key] = t[key][:last + 1]
+            current.append(t)
 
     # Preis-Arrays am Anfang kürzen: nur ab erstem Auftauchen speichern
     for t in current:
@@ -136,6 +149,7 @@ def build_data(con, today: date) -> dict:
         "merkliste": settings.get("merkliste") or [],
         "wunsch": settings.get("wunsch"),
         "stand": days[-1] if days else today.isoformat(),
+        "stand_je_reederei": {b: days[i] for b, i in brand_last.items()},
         "days": days,
         "regions": [r for r in REGION_ORDER if r in present],
         "trips": current,

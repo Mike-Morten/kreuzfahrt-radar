@@ -27,6 +27,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import sqlite3
 import sys
@@ -59,6 +60,19 @@ ROUTER_STATE_TREE = (
     "%22%2C%7B%7D%2Cnull%2Cnull%5D%7D%2Cnull%2Cnull%5D%7D%2Cnull%2Cnull%5D%7D"
     "%2Cnull%2Cnull%2Ctrue%5D"
 )
+
+
+COMPLETE_SHARE = 0.9   # weniger Reisen als 90 % von "total" gilt als unvollständig
+ACTION_FILE = SCRIPT_DIR / "daten" / "mein_schiff_kennung.txt"
+
+
+def gh_warning(msg: str) -> None:
+    """Warnung ausgeben; in GitHub Actions erscheint sie als Hinweis am Lauf."""
+    print(f"::warning::{msg}" if os.environ.get("GITHUB_ACTIONS") else f"WARNUNG: {msg}")
+
+
+def gh_notice(msg: str) -> None:
+    print(f"::notice::{msg}" if os.environ.get("GITHUB_ACTIONS") else msg)
 
 
 # --------------------------------------------------------------------------
@@ -239,28 +253,52 @@ class MeinSchiffClient:
                 break
         return list(dict.fromkeys(strong + weak))
 
-    def resolve_action_id(self, html: str, search: dict, cursor: str) -> tuple[str, dict]:
+    def resolve_action_id(self, html: str, search: dict, cursor: str,
+                          seen: set | None = None) -> tuple[str, dict]:
         """Findet eine funktionierende Kennung für die Such-Aktion.
 
+        Eine Kennung gilt nur als funktionierend, wenn sie Reisen liefert, die
+        noch nicht in `seen` sind (sonst blättert sie nicht wirklich weiter).
         Gibt die Kennung und die bereits abgerufene nächste Seite zurück.
         """
-        tried = []
+        tried, report = [], []
         for candidate in [self.action_id, FALLBACK_ACTION_ID]:
             if candidate and candidate not in tried:
                 tried.append(candidate)
-                resp = self._try(candidate, search, cursor)
+                resp, why = self._check(candidate, search, cursor, seen)
+                report.append(f"{candidate[:8]}…={why}")
                 if resp is not None:
                     return candidate, resp
         print("Gespeicherte Aktions-Kennung funktioniert nicht mehr, suche neu …")
-        for candidate in self._candidate_action_ids(html):
+        candidates = self._candidate_action_ids(html)
+        for candidate in candidates:
             if candidate in tried:
                 continue
             tried.append(candidate)
             time.sleep(0.5)
-            resp = self._try(candidate, search, cursor)
+            resp, why = self._check(candidate, search, cursor, seen)
+            report.append(f"{candidate[:8]}…={why}")
             if resp is not None:
+                gh_notice(f"Mein Schiff: neue Aktions-Kennung {candidate} gefunden")
                 return candidate, resp
+        gh_warning(f"Mein Schiff: keine Kennung blättert weiter ({len(candidates)} Kandidaten). "
+                   + "; ".join(report[:12]))
         raise RuntimeError("Keine funktionierende Aktions-Kennung gefunden")
+
+    def _check(self, action_id: str, search: dict, cursor: str, seen: set | None):
+        """Probiert eine Kennung aus. Gibt (Antwort oder None, Kurzbefund) zurück."""
+        try:
+            resp = self.load_more(search, cursor, action_id)
+        except requests.RequestException as e:
+            return None, f"HTTP-Fehler {getattr(e.response, 'status_code', '')}".strip()
+        except ValueError:
+            return None, "keine Reisedaten"
+        codes = [t.get("tripCode") for t in resp.get("data", [])]
+        if not codes:
+            return None, "leer"
+        if seen is not None and not set(codes) - seen:
+            return None, "liefert nur bekannte Reisen"
+        return resp, "ok"
 
     def _try(self, action_id: str, search: dict, cursor: str) -> dict | None:
         try:
@@ -280,7 +318,7 @@ class MeinSchiffClient:
                 pass
             if i == 1:  # nach dem zweiten Fehlschlag die Kennung neu prüfen
                 try:
-                    self.action_id, resp = self.resolve_action_id(html, search, cursor)
+                    self.action_id, resp = self.resolve_action_id(html, search, cursor, self._seen)
                     return resp
                 except RuntimeError:
                     pass
@@ -297,10 +335,11 @@ class MeinSchiffClient:
 
         page = 1
         seen = {t["tripCode"] for t in trips}
+        self._seen = seen
         prefetched = None
         if cursor:
             time.sleep(PAUSE_SECONDS)
-            self.action_id, prefetched = self.resolve_action_id(html, search, cursor)
+            self.action_id, prefetched = self.resolve_action_id(html, search, cursor, seen)
 
         while cursor and page < MAX_PAGES:
             page += 1
@@ -323,6 +362,10 @@ class MeinSchiffClient:
             cursor = resp.get("nextCursor")
             print(f"Seite {page}: {len(trips)} von {total} Reisen")
         self._html = html
+        if total and len(trips) < COMPLETE_SHARE * total:
+            self.incomplete = True
+            gh_warning(f"Mein Schiff unvollständig: nur {len(trips)} von {total} Reisen geladen "
+                       f"(Abbruch nach Seite {page}).")
         return trips
 
     def fetch_cabin_prices(self, cabin_types: list[str], search: dict | None = None) -> dict | None:
@@ -531,10 +574,17 @@ def main(argv: list[str] | None = None) -> int:
             items += data["data"]
             print(f"{f}: {len(data['data'])} Reisen")
     else:
-        client = MeinSchiffClient(action_id=get_meta(con, "action_id"))
+        saved = ACTION_FILE.read_text().strip() if ACTION_FILE.exists() else None
+        client = MeinSchiffClient(action_id=saved or get_meta(con, "action_id"))
         items = client.fetch_all()
         if client.action_id:
             set_meta(con, "action_id", client.action_id)
+            if client.action_id != saved and not client.incomplete:
+                ACTION_FILE.parent.mkdir(exist_ok=True)
+                ACTION_FILE.write_text(client.action_id + "\n")
+        if client.incomplete:
+            print("Unvollständige Daten werden NICHT gespeichert – das Dashboard zeigt die Preise vom letzten vollständigen Lauf.")
+            return 2
 
     n = save_trips(con, items)
     print(f"{n} Reisen mit Preisen für {date.today().isoformat()} gespeichert in {args.db}")

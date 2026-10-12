@@ -586,7 +586,9 @@ footer { color: var(--muted); font-size: 14px; padding: 20px 0 40px; border-top:
   var aida = D.trips.length - ms;
   var cheapest = D.trips.reduce(function (a, t) { return (t.cur != null && !t.flightOnly && (a == null || t.cur < a.cur)) ? t : a; }, null);
   document.getElementById("facts").innerHTML =
-    "<div><b>" + dShort(D.stand) + "</b>Stand der Preise</div>" +
+    "<div><b>" + dShort(D.stand) + "</b>Stand der Preise" + Object.keys(D.stand_je_reederei || {}).filter(function (b) {
+      return D.stand_je_reederei[b] !== D.stand; }).map(function (b) {
+      return "<br><small>" + esc(b) + ": " + dShort(D.stand_je_reederei[b]) + "</small>"; }).join("") + "</div>" +
     "<div><b class='num'>" + nf.format(D.trips.length) + "</b>Abfahrten</div>" +
     "<div><b class='num'>" + nf.format(ms) + " / " + nf.format(aida) + "</b>Mein Schiff / AIDA</div>" +
     (cheapest ? "<div><b class='num'>ab " + eur(cheapest.cur) + "</b>günstigste " + (cabin === "any" ? "Reise" : CABIN_LABEL[cabin]) + " p. P.</div>" : "") +
