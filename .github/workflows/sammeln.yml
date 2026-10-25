@@ -22,6 +22,8 @@ concurrency:
 jobs:
   sammeln:
     runs-on: ubuntu-latest
+    outputs:
+      getestet: ${{ steps.test.outcome }}
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
@@ -53,7 +55,16 @@ jobs:
       - name: Dashboard bauen
         run: python dashboard_bauen.py
 
+      - name: Dashboard testen
+        id: test
+        continue-on-error: true
+        run: |
+          pip install playwright
+          python -m playwright install --with-deps chromium
+          python tests/dashboard_test.py site/index.html
+
       - name: Dashboard bereitstellen
+        if: steps.test.outcome == 'success'
         uses: actions/upload-pages-artifact@v3
         with:
           path: site
@@ -92,14 +103,14 @@ jobs:
           git push
 
       - name: Ergebnis prüfen
-        if: steps.meinschiff.outcome == 'failure' || steps.aida.outcome == 'failure'
+        if: steps.meinschiff.outcome == 'failure' || steps.aida.outcome == 'failure' || steps.test.outcome == 'failure'
         run: |
-          echo "::warning::Mein Schiff: ${{ steps.meinschiff.outcome }}, AIDA: ${{ steps.aida.outcome }}"
+          echo "::warning::Mein Schiff: ${{ steps.meinschiff.outcome }}, AIDA: ${{ steps.aida.outcome }}, Dashboard-Test: ${{ steps.test.outcome }}"
           exit 1
 
   veroeffentlichen:
     needs: sammeln
-    if: always() && needs.sammeln.result != 'cancelled'
+    if: always() && needs.sammeln.result != 'cancelled' && needs.sammeln.outputs.getestet == 'success'
     runs-on: ubuntu-latest
     environment:
       name: github-pages

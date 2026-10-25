@@ -563,6 +563,7 @@ footer { color: var(--muted); font-size: 14px; padding: 20px 0 40px; border-top:
     return r;
   }
   function jumpFlag(t, s, pi, mode) {
+    if (!s || !s.length) return null;
     var n = s.length;
     if (pi == null || s[pi] == null || s[n - 1] == null || s[n - 1] === s[pi]) return null;
     var rel = Math.abs(s[n - 1] - s[pi]) / s[pi];
@@ -618,7 +619,7 @@ footer { color: var(--muted); font-size: 14px; padding: 20px 0 40px; border-top:
       var vals = t.series.filter(function (v) { return v != null; });
       t.min = vals.length ? Math.min.apply(null, vals) : null;
       t.max = vals.length ? Math.max.apply(null, vals) : null;
-      t.flag = jumpFlag(t, s, pi, mode);
+      t.flag = jumpFlag(t, t.series, pi, mode);
       t.record = !t.flag && t.cur != null && vals.length > 1 && t.cur === t.min && t.max > t.min;   // neuer Tiefstpreis
       t.perNight = t.cur != null && t.n ? t.cur / t.n : null;
     });
