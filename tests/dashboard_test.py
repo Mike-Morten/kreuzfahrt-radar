@@ -46,8 +46,11 @@ async def run() -> list[str]:
                     if await pressed("cmpSeg") != cmp:
                         problems.append(f"[{w}] Vergleichsschalter '{cmp}' reagiert nicht")
                 if await page.locator(".trip").count():
-                    await page.locator(".trip .trip-main").first.click()
-                    await page.wait_for_timeout(150)
+                    first = page.locator(".trip .trip-main").first
+                    # nur aufklappen, wenn die Reise nicht schon offen ist (sonst klappt der Klick sie zu)
+                    if await first.get_attribute("aria-expanded") != "true":
+                        await first.click()
+                        await page.wait_for_timeout(150)
                     if await page.locator(".detail").count() == 0:
                         problems.append(f"[{w}] Reise lässt sich nicht öffnen ({cab})")
             for v in ("Mein Schiff", "AIDA", ""):
