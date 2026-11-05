@@ -236,22 +236,47 @@ class MeinSchiffClient:
             )
             raise
 
+    def _script_urls(self, html: str) -> list[str]:
+        """Alle JavaScript-Dateien der Seite – aus <script>/<link> und aus den Next.js-Daten."""
+        found = re.findall(r'(?:src|href)="([^"]*?/_next/static/[^"]+?\.js[^"]*)"', html)
+        try:
+            payload = "".join(json.loads(f'"{m}"') for m in _NEXT_F_RE.findall(html))
+        except ValueError:
+            payload = ""
+        found += re.findall(r'"((?:https?://[^"/]+)?/_next/static/[^"]+?\.js[^"]*)"', payload)
+        found += ["/_next/" + x for x in re.findall(r'"(static/(?:chunks|media)/[^"]+?\.js[^"]*)"', payload)]
+        urls = []
+        for u in found:
+            u = u.replace("&amp;", "&")
+            urls.append(u if u.startswith("http") else BASE_URL + u)
+        urls = list(dict.fromkeys(urls))
+        # Dateien der Suchseite zuerst
+        urls.sort(key=lambda u: 0 if "trips" in u else 1 if "page" in u else 2)
+        return urls
+
     def _candidate_action_ids(self, html: str) -> list[str]:
         """Sucht Server-Action-Kennungen in den JavaScript-Dateien der Seite."""
-        scripts = re.findall(r'src="(/_next/static/chunks/[^"]+\.js)"', html)
-        # Die Dateien der Suchseite zuerst durchsuchen
-        scripts.sort(key=lambda s: 0 if "trips" in s else 1)
-        strong, weak = [], []
-        for src in dict.fromkeys(scripts):
+        urls = self._script_urls(html)
+        strong, weak, fetched = [], [], 0
+        sources = [("html", html)]
+        for url in urls[:120]:
             try:
-                js = self.session.get(BASE_URL + src, timeout=30).text
+                r = self.session.get(url, timeout=30)
+                if r.status_code == 200:
+                    sources.append((url, r.text))
+                    fetched += 1
             except requests.RequestException:
                 continue
+        for url, js in sources:
             strong += re.findall(r'createServerReference\)?\(\s*"([0-9a-f]{40,44})"', js)
-            weak += re.findall(r'"([0-9a-f]{42})"', js)
-            if strong and "trips" in src:
-                break
-        return list(dict.fromkeys(strong + weak))
+            strong += re.findall(r'\(\s*"([0-9a-f]{40,44})"\s*,\s*[\w$.]+\s*,\s*void 0\s*,', js)
+            weak += re.findall(r'"([0-9a-f]{40,44})"', js)
+        cands = list(dict.fromkeys(strong + weak))
+        sample = ", ".join(u.replace(BASE_URL, "")[:70] for u in urls[:4])
+        gh_notice(f"Mein Schiff Kennungssuche: {len(urls)} Skripte gefunden, {fetched} geladen, "
+                  f"{len(dict.fromkeys(strong))} sichere und {len(cands)} mögliche Kennungen. "
+                  f"HTML {len(html)} Zeichen. Beispiele: {sample or '–'}")
+        return cands[:60]
 
     def resolve_action_id(self, html: str, search: dict, cursor: str,
                           seen: set | None = None) -> tuple[str, dict]:
